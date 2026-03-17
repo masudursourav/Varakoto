@@ -36,7 +36,11 @@ function DetailsModal({
   onClose: () => void;
 }) {
   const { lang } = useLanguage();
-  const studentFare = calcStudentFare(result.fare);
+  const studentFare =
+    result.is_transfer && result.transfer
+      ? calcStudentFare(result.transfer.leg1.fare) +
+        calcStudentFare(result.transfer.leg2.fare)
+      : calcStudentFare(result.fare);
 
   return (
     <div
@@ -198,7 +202,11 @@ export function FareResultCard({
 }: FareResultCardProps) {
   const { lang } = useLanguage();
   const [showDetails, setShowDetails] = useState(false);
-  const studentFare = calcStudentFare(result.fare);
+  const studentFare =
+    result.is_transfer && result.transfer
+      ? calcStudentFare(result.transfer.leg1.fare) +
+        calcStudentFare(result.transfer.leg2.fare)
+      : calcStudentFare(result.fare);
   const displayFare = showStudentFare ? studentFare : result.fare;
 
   const routeName =
