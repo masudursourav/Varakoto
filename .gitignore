@@ -35,10 +35,6 @@ Thumbs.db
 *.pem
 .vercel
 
-# API cache files
-apps/api/.distance-cache.json
-apps/api/.direct-distance-cache.json
-
 # Stitch design exports
 stitch_exports/
 
