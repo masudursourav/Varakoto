@@ -305,7 +305,7 @@ export function FareResultCard({
         {/* Card Footer */}
         <div className="flex items-center justify-between border-t border-gray-100 bg-gray-50 px-4 py-2 dark:border-slate-800 dark:bg-slate-800/50">
           <span className="text-[10px] text-gray-400 dark:text-slate-500">
-            {lang === "bn" ? "BRTA অনুমোদিত" : "BRTA Verified"}
+            {lang === "bn" ? "BRTA হার অনুযায়ী" : "As per BRTA rate"}
           </span>
           <button
             onClick={() => setShowDetails(true)}
