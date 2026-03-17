@@ -40,13 +40,7 @@ export default function manifest(): MetadataRoute.Manifest {
         purpose: "maskable",
       },
     ],
-    screenshots: [
-      {
-        src: "/screenshot-mobile.png",
-        sizes: "390x844",
-        type: "image/png",
-      },
-    ],
+
     shortcuts: [
       {
         name: "ভাড়া হিসাব করুন",
