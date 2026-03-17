@@ -137,7 +137,7 @@ function DetailsModal({
               {showStudentFare && (
                 <p className="mt-1 flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
                   <GraduationCap className="h-3 w-3" />
-                  {t(lang, "studentFareLabel")}: ৳{calcStudentFare(result.fare)}
+                  {t(lang, "studentFareLabel")}: ৳{studentFare}
                 </p>
               )}
             </div>
