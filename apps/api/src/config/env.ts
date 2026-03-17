@@ -14,7 +14,15 @@ if (!MONGODB_URI) {
 
 const PORT = parseInt(process.env.PORT || "5001", 10);
 
+// Comma-separated list of allowed CORS origins.
+// Defaults to localhost:3000 for local development.
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "http://localhost:3000")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+
 export const env = {
   MONGODB_URI,
   PORT,
+  ALLOWED_ORIGINS,
 } as const;

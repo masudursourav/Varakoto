@@ -7,7 +7,7 @@ export function Navbar() {
 
   return (
     <header
-      className="glass-header sticky top-0 z-50 flex items-center justify-between bg-white/80 px-4 py-3 backdrop-blur-[12px] dark:bg-slate-900/80"
+      className="glass-header sticky top-0 z-50 flex items-center justify-between bg-white/80 px-4 py-3 backdrop-blur-md dark:bg-slate-900/80"
       style={{ borderBottom: "1px solid rgba(255,255,255,0.2)" }}
     >
       <div className="flex items-center gap-2">

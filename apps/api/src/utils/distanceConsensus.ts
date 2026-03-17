@@ -3,14 +3,14 @@
  *
  * Priority order:
  * 1. Precomputed Google direct distance (from .direct-distance-cache.json)
- *    → Most accurate, covers all pairs within 30km
- * 2. Dijkstra shortest path through Google-verified edges
+ *    → Most accurate, covers all pairs within 30 km
+ * 2. Dijkstra shortest path through Google-verified edges (O((V+E) log V) binary heap)
  *    → Fallback for uncached pairs, applies 0.90 correction factor
  * 3. DB minimum km difference
  *    → Last resort fallback
  *
  * Final result: minimum of all available sources, ensuring fare is
- * never higher than Google Maps distance.
+ * never higher than the Google Maps distance.
  */
 
 import fs from "fs";
@@ -18,18 +18,25 @@ import path from "path";
 import { BusRoute } from "../models/busRoute.model.js";
 import { normalizeText } from "./normalizeText.js";
 
-// Cache file paths (relative to process.cwd which is apps/api/)
+// ─── Cache file paths ─────────────────────────────────────────────────────────
+
 const EDGE_CACHE = path.resolve(process.cwd(), ".distance-cache.json");
 const DIRECT_CACHE = path.resolve(process.cwd(), ".direct-distance-cache.json");
 
-// Dijkstra correction: shortest path through graph tends to overestimate
-// by ~10% due to hop-by-hop road detours
-const DIJKSTRA_FACTOR = 0.90;
+// ─── Constants ────────────────────────────────────────────────────────────────
 
-// Manual distance overrides (take priority over all other sources)
+/** Dijkstra correction: hop-by-hop routes tend to overestimate ~10%. */
+const DIJKSTRA_FACTOR = 0.9;
+
+/** How long (ms) to keep the DB-derived distance map before rebuilding. */
+const DB_MIN_MAP_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+// ─── Manual overrides (always wins, regardless of any cached source) ──────────
+
 function overrideKey(a: string, b: string): string {
   return [a.toLowerCase().trim(), b.toLowerCase().trim()].sort().join("||");
 }
+
 const MANUAL_OVERRIDES: Record<string, number> = {
   [overrideKey("azampur", "mirpur 11")]: 11.6,
   [overrideKey("azampur", "mirpur-11")]: 11.6,
@@ -44,12 +51,21 @@ const MANUAL_OVERRIDES: Record<string, number> = {
   [overrideKey("tongi", "banani")]: 12.6,
 };
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+
 type Graph = Map<string, Map<string, number>>;
+
+// ─── Module-level singletons ─────────────────────────────────────────────────
 
 let graph: Graph | null = null;
 let dijkstraCache: Map<string, number> | null = null;
+
 let dbMinMap: Map<string, number> | null = null;
+let dbMinMapBuiltAt: number | null = null;
+
 let directCache: Record<string, number | null> | null = null;
+
+// ─── Pair key ────────────────────────────────────────────────────────────────
 
 function pairKey(stop1: string, stop2: string): string {
   const a = normalizeText(stop1);
@@ -57,15 +73,131 @@ function pairKey(stop1: string, stop2: string): string {
   return a < b ? `${a}||${b}` : `${b}||${a}`;
 }
 
-function loadDirectCache(): Record<string, number | null> {
-  if (fs.existsSync(DIRECT_CACHE)) {
-    const data = JSON.parse(fs.readFileSync(DIRECT_CACHE, "utf-8"));
-    console.log(
-      `Direct distance cache: ${Object.values(data).filter((v) => v !== null).length} pairs`
-    );
-    return data;
+// ─── Binary Min-Heap ─────────────────────────────────────────────────────────
+
+/**
+ * A generic min-heap keyed on a numeric priority.
+ * Reduces Dijkstra's per-step complexity from O(n) to O(log n),
+ * giving an overall O((V + E) log V) algorithm.
+ */
+class MinHeap {
+  private readonly heap: [number, string][] = [];
+
+  get size(): number {
+    return this.heap.length;
   }
-  return {};
+
+  push(priority: number, value: string): void {
+    this.heap.push([priority, value]);
+    this.bubbleUp(this.heap.length - 1);
+  }
+
+  pop(): [number, string] | undefined {
+    if (this.heap.length === 0) return undefined;
+
+    const top = this.heap[0];
+    const last = this.heap.pop()!;
+
+    if (this.heap.length > 0) {
+      this.heap[0] = last;
+      this.sinkDown(0);
+    }
+
+    return top;
+  }
+
+  private swap(i: number, j: number): void {
+    const tmp = this.heap[i];
+    this.heap[i] = this.heap[j];
+    this.heap[j] = tmp;
+  }
+
+  private bubbleUp(i: number): void {
+    while (i > 0) {
+      const parent = (i - 1) >>> 1;
+      if (this.heap[parent][0] <= this.heap[i][0]) break;
+      this.swap(parent, i);
+      i = parent;
+    }
+  }
+
+  private sinkDown(i: number): void {
+    const n = this.heap.length;
+    while (true) {
+      let smallest = i;
+      const left = 2 * i + 1;
+      const right = 2 * i + 2;
+
+      if (left < n && this.heap[left][0] < this.heap[smallest][0]) {
+        smallest = left;
+      }
+      if (right < n && this.heap[right][0] < this.heap[smallest][0]) {
+        smallest = right;
+      }
+
+      if (smallest === i) break;
+
+      this.swap(smallest, i);
+      i = smallest;
+    }
+  }
+}
+
+// ─── Dijkstra (O((V+E) log V)) ───────────────────────────────────────────────
+
+/**
+ * Find the shortest path distance between `start` and `end` in `g`.
+ * Uses a binary min-heap priority queue for O((V+E) log V) performance.
+ * Returns `null` when no path exists.
+ */
+function dijkstra(g: Graph, start: string, end: string): number | null {
+  const dist = new Map<string, number>();
+  const visited = new Set<string>();
+  const heap = new MinHeap();
+
+  dist.set(start, 0);
+  heap.push(0, start);
+
+  while (heap.size > 0) {
+    const entry = heap.pop();
+    if (!entry) break;
+
+    const [d, node] = entry;
+
+    if (node === end) return d;
+    if (visited.has(node)) continue;
+    visited.add(node);
+
+    const neighbors = g.get(node);
+    if (!neighbors) continue;
+
+    for (const [neighbor, weight] of neighbors) {
+      if (visited.has(neighbor)) continue;
+
+      const newDist = d + weight;
+      const knownDist = dist.get(neighbor);
+
+      if (knownDist === undefined || newDist < knownDist) {
+        dist.set(neighbor, newDist);
+        heap.push(newDist, neighbor);
+      }
+    }
+  }
+
+  return null;
+}
+
+// ─── Graph loader ─────────────────────────────────────────────────────────────
+
+function loadDirectCache(): Record<string, number | null> {
+  if (!fs.existsSync(DIRECT_CACHE)) return {};
+
+  const data: Record<string, number | null> = JSON.parse(
+    fs.readFileSync(DIRECT_CACHE, "utf-8"),
+  );
+  const validCount = Object.values(data).filter((v) => v !== null).length;
+  console.log(`Direct distance cache: ${validCount} pairs`);
+  return data;
 }
 
 function buildGraph(): Graph {
@@ -77,15 +209,17 @@ function buildGraph(): Graph {
   }
 
   const cache: Record<string, number | null> = JSON.parse(
-    fs.readFileSync(EDGE_CACHE, "utf-8")
+    fs.readFileSync(EDGE_CACHE, "utf-8"),
   );
 
   for (const [key, dist] of Object.entries(cache)) {
     if (dist === null || dist <= 0) continue;
 
-    const [a, b] = key.split("||");
-    const na = normalizeText(a);
-    const nb = normalizeText(b);
+    const parts = key.split("||");
+    if (parts.length !== 2) continue;
+
+    const na = normalizeText(parts[0]);
+    const nb = normalizeText(parts[1]);
 
     if (!g.has(na)) g.set(na, new Map());
     if (!g.has(nb)) g.set(nb, new Map());
@@ -98,42 +232,9 @@ function buildGraph(): Graph {
   }
 
   console.log(
-    `Distance graph: ${g.size} stops, ${Object.keys(cache).length} edges`
+    `Distance graph: ${g.size} stops, ${Object.keys(cache).length} edges`,
   );
   return g;
-}
-
-function dijkstra(g: Graph, start: string, end: string): number | null {
-  const dist = new Map<string, number>();
-  const visited = new Set<string>();
-  const queue: [number, string][] = [[0, start]];
-  dist.set(start, 0);
-
-  while (queue.length > 0) {
-    let minIdx = 0;
-    for (let i = 1; i < queue.length; i++) {
-      if (queue[i][0] < queue[minIdx][0]) minIdx = i;
-    }
-    const [d, node] = queue.splice(minIdx, 1)[0];
-
-    if (node === end) return d;
-    if (visited.has(node)) continue;
-    visited.add(node);
-
-    const neighbors = g.get(node);
-    if (!neighbors) continue;
-
-    for (const [neighbor, weight] of neighbors) {
-      if (visited.has(neighbor)) continue;
-      const newDist = d + weight;
-      if (!dist.has(neighbor) || newDist < dist.get(neighbor)!) {
-        dist.set(neighbor, newDist);
-        queue.push([newDist, neighbor]);
-      }
-    }
-  }
-
-  return null;
 }
 
 async function buildDbMinMap(): Promise<Map<string, number>> {
@@ -146,6 +247,7 @@ async function buildDbMinMap(): Promise<Map<string, number>> {
       for (let j = i + 1; j < stops.length; j++) {
         const dist = Math.abs(stops[j].km - stops[i].km);
         if (dist === 0) continue;
+
         const key = pairKey(stops[i].name_en, stops[j].name_en);
         const current = result.get(key);
         if (current === undefined || dist < current) {
@@ -158,32 +260,53 @@ async function buildDbMinMap(): Promise<Map<string, number>> {
   return result;
 }
 
+// ─── Ensure caches are ready ──────────────────────────────────────────────────
+
 async function ensureReady(): Promise<void> {
+  // Direct Google cache — loaded once from disk, no expiry needed
+  // (updated only by the precompute script, not at runtime).
   if (!directCache) {
     directCache = loadDirectCache();
   }
+
+  // Edge graph and Dijkstra memo — also disk-sourced, no runtime expiry.
   if (!graph) {
     graph = buildGraph();
     dijkstraCache = new Map();
   }
-  if (!dbMinMap) {
+
+  // DB min-map — derived from live DB data, so we apply a TTL.
+  const now = Date.now();
+  const isStale =
+    !dbMinMap ||
+    dbMinMapBuiltAt === null ||
+    now - dbMinMapBuiltAt > DB_MIN_MAP_TTL_MS;
+
+  if (isStale) {
     dbMinMap = await buildDbMinMap();
+    dbMinMapBuiltAt = now;
   }
 }
 
+// ─── Public API ───────────────────────────────────────────────────────────────
+
 /**
- * Get the best distance between two stops.
- * Guarantees result is never higher than Google Maps direct distance.
+ * Get the best distance (km) between two stops.
+ *
+ * Returns the *minimum* of all available sources so that the calculated
+ * fare is never higher than what Google Maps would suggest.
+ *
+ * Returns `null` when no distance information is available at all.
  */
 export async function getConsensusDistance(
   stop1En: string,
-  stop2En: string
+  stop2En: string,
 ): Promise<number | null> {
   await ensureReady();
 
   const key = pairKey(stop1En, stop2En);
 
-  // Source 0: Manual override (highest priority)
+  // Source 0: Manual override (highest priority, always wins)
   if (key in MANUAL_OVERRIDES) {
     return MANUAL_OVERRIDES[key];
   }
@@ -191,26 +314,31 @@ export async function getConsensusDistance(
   // Source 1: Precomputed Google direct distance (most accurate)
   const googleDirect = directCache![key];
 
-  // Source 2: Dijkstra shortest path with correction factor
+  // Source 2: Dijkstra shortest path + correction factor
   let dijkstraDist: number | null = null;
+
   if (dijkstraCache!.has(key)) {
     dijkstraDist = dijkstraCache!.get(key)!;
   } else {
     const na = normalizeText(stop1En);
     const nb = normalizeText(stop2En);
+
     if (graph!.has(na) && graph!.has(nb)) {
       const raw = dijkstra(graph!, na, nb);
       dijkstraDist = raw !== null ? raw * DIJKSTRA_FACTOR : null;
-      if (dijkstraDist !== null) {
-        dijkstraCache!.set(key, dijkstraDist);
-      }
+
+      // Cache result (null included) to avoid recomputing
+      dijkstraCache!.set(key, dijkstraDist ?? -1);
     }
   }
+
+  // Normalise the sentinel value used to cache "no path found"
+  if (dijkstraDist === -1) dijkstraDist = null;
 
   // Source 3: DB minimum km difference
   const dbDist = dbMinMap!.get(key) ?? null;
 
-  // Pick the minimum of all available sources
+  // Collect all valid candidates and pick the smallest
   const candidates: number[] = [];
   if (googleDirect !== null && googleDirect !== undefined) {
     candidates.push(googleDirect);
@@ -225,11 +353,13 @@ export async function getConsensusDistance(
 }
 
 /**
- * Invalidate all caches (e.g., after DB updates).
+ * Force all caches to be rebuilt on the next request.
+ * Call this after the distance scripts update the DB or cache files.
  */
 export function invalidateConsensusMap(): void {
   graph = null;
   dijkstraCache = null;
   dbMinMap = null;
+  dbMinMapBuiltAt = null;
   directCache = null;
 }

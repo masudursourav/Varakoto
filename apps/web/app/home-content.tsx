@@ -8,9 +8,9 @@ import { fetchStops, type StopItem } from "@/lib/api";
 import {
   getHistory,
   addToHistory,
-  formatTimeAgo,
   type SearchHistoryItem,
 } from "@/lib/history";
+import { formatTimeAgo } from "@/lib/utils";
 import { StopAutocomplete } from "@/components/stop-autocomplete";
 import { BrtaRulesDialog } from "@/components/brta-rules-dialog";
 import {
@@ -36,12 +36,20 @@ export function HomeContent() {
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<SearchHistoryItem[]>([]);
 
+  // Fetch stops once on mount.
+  // `lang` is intentionally excluded from the dependency array:
+  // the /stops endpoint always returns both name_en and name_bn, so
+  // toggling the UI language must never trigger a re-fetch.
+  // The module-level cache in lib/api.ts also guarantees a second mount
+  // (e.g. navigating back home) is served instantly without any network call.
   useEffect(() => {
+    setLoading(true);
     fetchStops()
       .then(setStops)
       .catch(() => setError(t(lang, "error")))
       .finally(() => setLoading(false));
-  }, [lang]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // ← empty: fetch once, use cache thereafter
 
   useEffect(() => {
     setHistory(getHistory());
@@ -66,19 +74,17 @@ export function HomeContent() {
     });
 
     const originParam = lang === "bn" ? origin.name_bn : origin.name_en;
-    const destParam =
-      lang === "bn" ? destination.name_bn : destination.name_en;
+    const destParam = lang === "bn" ? destination.name_bn : destination.name_en;
     router.push(
-      `/results?origin=${encodeURIComponent(originParam)}&destination=${encodeURIComponent(destParam)}`
+      `/results?origin=${encodeURIComponent(originParam)}&destination=${encodeURIComponent(destParam)}`,
     );
   };
 
   const handleHistoryClick = (item: SearchHistoryItem) => {
     const originParam = lang === "bn" ? item.origin_bn : item.origin_en;
-    const destParam =
-      lang === "bn" ? item.destination_bn : item.destination_en;
+    const destParam = lang === "bn" ? item.destination_bn : item.destination_en;
     router.push(
-      `/results?origin=${encodeURIComponent(originParam)}&destination=${encodeURIComponent(destParam)}`
+      `/results?origin=${encodeURIComponent(originParam)}&destination=${encodeURIComponent(destParam)}`,
     );
   };
 

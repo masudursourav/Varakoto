@@ -3,14 +3,8 @@
 import { useLanguage } from "@/context/language-context";
 import { useTheme } from "@/context/theme-context";
 import { t } from "@/lib/i18n";
-import {
-  Moon,
-  Mail,
-  Bug,
-  FileText,
-  ShieldCheck,
-  ChevronRight,
-} from "lucide-react";
+import { Moon, Mail, Bug, ChevronRight } from "lucide-react";
+import pkg from "../../package.json";
 
 export default function SettingsPage() {
   const { lang } = useLanguage();
@@ -45,8 +39,9 @@ export default function SettingsPage() {
                   className="peer sr-only"
                   checked={isDark}
                   onChange={toggle}
+                  aria-label={t(lang, "darkMode")}
                 />
-                <div className="peer h-6 w-11 rounded-full bg-slate-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-orange-500 peer-checked:after:translate-x-full peer-checked:after:border-white dark:bg-slate-700 dark:after:border-slate-600" />
+                <div className="peer h-6 w-11 rounded-full bg-slate-200 after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-orange-500 peer-checked:after:translate-x-full peer-checked:after:border-white dark:bg-slate-700 dark:after:border-slate-600" />
               </label>
             </div>
           </div>
@@ -80,7 +75,7 @@ export default function SettingsPage() {
                 {t(lang, "emailSupport")}
               </a>
               <a
-                href="https://github.com/varakoto/issues"
+                href="https://github.com/masudursourav/varakoto/issues"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 rounded-lg bg-slate-100 px-4 py-3 font-medium text-slate-700 transition-colors hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
@@ -92,32 +87,42 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {/* Additional Links */}
-        <section className="space-y-1">
-          <button className="flex w-full items-center justify-between rounded-xl border border-slate-100 bg-white p-4 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800">
-            <div className="flex items-center gap-3">
-              <FileText className="h-5 w-5 text-slate-400 dark:text-slate-500" />
-              <span className="font-medium text-slate-900 dark:text-slate-100">
-                {t(lang, "termsOfService")}
-              </span>
-            </div>
-            <ChevronRight className="h-5 w-5 text-slate-400 dark:text-slate-600" />
-          </button>
-          <button className="flex w-full items-center justify-between rounded-xl border border-slate-100 bg-white p-4 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800">
-            <div className="flex items-center gap-3">
-              <ShieldCheck className="h-5 w-5 text-slate-400 dark:text-slate-500" />
-              <span className="font-medium text-slate-900 dark:text-slate-100">
-                {t(lang, "privacyPolicy")}
-              </span>
-            </div>
-            <ChevronRight className="h-5 w-5 text-slate-400 dark:text-slate-600" />
-          </button>
+        {/* BRTA Resources */}
+        <section>
+          <h2 className="mb-3 px-1 text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            BRTA
+          </h2>
+          <div className="overflow-hidden rounded-xl border border-slate-100 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <a
+              href="https://brta.gov.bd"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-between p-4 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800"
+            >
+              <div className="flex items-center gap-3">
+                <div className="rounded-lg bg-blue-50 p-2 text-[#1a4a8e] dark:bg-blue-900/30 dark:text-blue-400">
+                  <span className="text-sm font-bold">B</span>
+                </div>
+                <span className="font-medium text-slate-900 dark:text-slate-100">
+                  {lang === "bn"
+                    ? "বিআরটিএ ওয়েবসাইট"
+                    : "BRTA Official Website"}
+                </span>
+              </div>
+              <ChevronRight className="h-5 w-5 text-slate-400 dark:text-slate-600" />
+            </a>
+          </div>
         </section>
 
         {/* Version */}
         <div className="pt-4 text-center">
           <p className="text-xs text-slate-400 dark:text-slate-500">
-            {t(lang, "version")} 2.4.0
+            {t(lang, "version")} {pkg.version}
+          </p>
+          <p className="mt-1 text-[10px] text-slate-300 dark:text-slate-600">
+            {lang === "bn"
+              ? "BRTA-এর সাথে সম্পর্কিত নয়"
+              : "Not affiliated with BRTA"}
           </p>
         </div>
       </main>

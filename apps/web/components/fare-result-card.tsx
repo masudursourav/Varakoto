@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useLanguage } from "@/context/language-context";
 import { t } from "@/lib/i18n";
+import { calcStudentFare } from "@/lib/utils";
 import type { FareResult } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -15,11 +16,6 @@ import {
   Route,
   Zap,
 } from "lucide-react";
-
-const MIN_STUDENT_FARE = 10;
-function calcStudentFare(fare: number): number {
-  return Math.max(MIN_STUDENT_FARE, Math.ceil(fare / 2));
-}
 
 interface FareResultCardProps {
   result: FareResult;
@@ -202,21 +198,22 @@ export function FareResultCard({
 }: FareResultCardProps) {
   const { lang } = useLanguage();
   const [showDetails, setShowDetails] = useState(false);
+
   const studentFare =
     result.is_transfer && result.transfer
       ? calcStudentFare(result.transfer.leg1.fare) +
         calcStudentFare(result.transfer.leg2.fare)
       : calcStudentFare(result.fare);
-  const displayFare = showStudentFare ? studentFare : result.fare;
 
-  const routeName =
-    lang === "bn" ? result.route_name_bn : result.route_name_en;
+  const displayFare = showStudentFare ? studentFare : result.fare;
+  const routeName = lang === "bn" ? result.route_name_bn : result.route_name_en;
 
   return (
     <>
       <section
         onClick={() => setShowDetails(true)}
-        className="cursor-pointer fare-card overflow-hidden rounded-2xl border border-gray-100 bg-white transition-shadow active:shadow-md dark:border-slate-800 dark:bg-slate-900">
+        className="fare-card cursor-pointer overflow-hidden rounded-2xl border border-gray-100 bg-white transition-shadow active:shadow-md dark:border-slate-800 dark:bg-slate-900"
+      >
         <div className="flex items-start justify-between p-4">
           <div className="min-w-0 flex-1">
             <h2 className="text-lg font-bold leading-tight text-gray-900 dark:text-slate-100">
@@ -321,7 +318,10 @@ export function FareResultCard({
             {lang === "bn" ? "BRTA হার অনুযায়ী" : "As per BRTA rate"}
           </span>
           <button
-            onClick={() => setShowDetails(true)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowDetails(true);
+            }}
             className="flex items-center text-xs font-bold text-blue-600 dark:text-blue-400"
           >
             {t(lang, "details")}

@@ -60,7 +60,7 @@ export function ResultsContent() {
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-slate-950">
       {/* Sticky Header */}
-      <header className="sticky-header sticky top-[52px] z-40 border-b border-gray-200 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/90">
+      <header className="sticky-header sticky top-13 z-40 border-b border-gray-200 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/90">
         <div className="mx-auto flex max-w-md items-center justify-between">
           <div className="flex items-center space-x-2">
             <button
@@ -99,7 +99,7 @@ export function ResultsContent() {
                 checked={showStudentFare}
                 onChange={(e) => setShowStudentFare(e.target.checked)}
               />
-              <div className="peer h-6 w-11 rounded-full bg-slate-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-emerald-500 peer-checked:after:translate-x-full peer-checked:after:border-white dark:bg-slate-700 dark:after:border-slate-600" />
+              <div className="peer h-6 w-11 rounded-full bg-slate-200 after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-emerald-500 peer-checked:after:translate-x-full peer-checked:after:border-white dark:bg-slate-700 dark:after:border-slate-600" />
             </label>
           </div>
         )}
