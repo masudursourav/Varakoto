@@ -40,6 +40,8 @@ const MANUAL_OVERRIDES: Record<string, number> = {
   [overrideKey("azampur", "tongi")]: 7.0,
   [overrideKey("azampur", "rajlakshmi")]: 5.5,
   [overrideKey("azampur", "house building")]: 12.0,
+  [overrideKey("tongi bazar", "banani")]: 12.6,
+  [overrideKey("tongi", "banani")]: 12.6,
 };
 
 type Graph = Map<string, Map<string, number>>;

@@ -4,6 +4,13 @@ import { normalizeText } from "./normalizeText.js";
 // Maps normalized stop name (EN or BN) → set of canonical English names
 let aliasMap: Map<string, Set<string>> | null = null;
 
+// Manual aliases: different DB names that are the same physical stop
+// Each entry maps an alias → list of canonical names it should also resolve to
+const MANUAL_ALIASES: [string, string[]][] = [
+  ["tongi bazar", ["tongi"]],
+  ["tongi", ["tongi bazar"]],
+];
+
 async function buildAliasMap(): Promise<Map<string, Set<string>>> {
   const routes = await BusRoute.find({}, { stops: 1 }).lean();
   const map = new Map<string, Set<string>>();
@@ -24,6 +31,16 @@ async function buildAliasMap(): Promise<Map<string, Set<string>>> {
         map.set(normalizedBn, new Set());
       }
       map.get(normalizedBn)!.add(canonicalEn);
+    }
+  }
+
+  // Apply manual aliases
+  for (const [alias, targets] of MANUAL_ALIASES) {
+    if (!map.has(alias)) {
+      map.set(alias, new Set());
+    }
+    for (const target of targets) {
+      map.get(alias)!.add(target);
     }
   }
 
