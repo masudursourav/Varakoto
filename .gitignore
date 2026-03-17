@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Build outputs
+dist/
+build/
+out/
+
+# Next.js
+.next/
+
+# TypeScript
+*.tsbuildinfo
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Misc
+*.pem
+.vercel
+
+# API cache files
+apps/api/.distance-cache.json
+apps/api/.direct-distance-cache.json
+
+# Stitch design exports
+stitch_exports/
+
+# Claude
+.claude/
+CLAUDE.md
