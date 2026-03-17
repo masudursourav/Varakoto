@@ -16,6 +16,11 @@ import {
   Zap,
 } from "lucide-react";
 
+const MIN_STUDENT_FARE = 10;
+function calcStudentFare(fare: number): number {
+  return Math.max(MIN_STUDENT_FARE, Math.ceil(fare / 2));
+}
+
 interface FareResultCardProps {
   result: FareResult;
   showStudentFare: boolean;
@@ -31,7 +36,7 @@ function DetailsModal({
   onClose: () => void;
 }) {
   const { lang } = useLanguage();
-  const studentFare = Math.ceil(result.fare / 2);
+  const studentFare = calcStudentFare(result.fare);
 
   return (
     <div
@@ -128,7 +133,7 @@ function DetailsModal({
               {showStudentFare && (
                 <p className="mt-1 flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
                   <GraduationCap className="h-3 w-3" />
-                  {t(lang, "studentFareLabel")}: ৳{Math.ceil(result.fare / 2)}
+                  {t(lang, "studentFareLabel")}: ৳{calcStudentFare(result.fare)}
                 </p>
               )}
             </div>
@@ -151,7 +156,7 @@ function DetailsModal({
                   <span>
                     {result.transfer.leg1.distance} {t(lang, "km")} · ৳
                     {showStudentFare
-                      ? Math.ceil(result.transfer.leg1.fare / 2)
+                      ? calcStudentFare(result.transfer.leg1.fare)
                       : result.transfer.leg1.fare}
                   </span>
                 </div>
@@ -162,7 +167,7 @@ function DetailsModal({
                   <span>
                     {result.transfer.leg2.distance} {t(lang, "km")} · ৳
                     {showStudentFare
-                      ? Math.ceil(result.transfer.leg2.fare / 2)
+                      ? calcStudentFare(result.transfer.leg2.fare)
                       : result.transfer.leg2.fare}
                   </span>
                 </div>
@@ -193,7 +198,7 @@ export function FareResultCard({
 }: FareResultCardProps) {
   const { lang } = useLanguage();
   const [showDetails, setShowDetails] = useState(false);
-  const studentFare = Math.ceil(result.fare / 2);
+  const studentFare = calcStudentFare(result.fare);
   const displayFare = showStudentFare ? studentFare : result.fare;
 
   const routeName =
@@ -278,7 +283,7 @@ export function FareResultCard({
                   <span className="ml-auto shrink-0 text-gray-400 dark:text-slate-500">
                     {result.transfer.leg1.distance} {t(lang, "km")} · ৳
                     {showStudentFare
-                      ? Math.ceil(result.transfer.leg1.fare / 2)
+                      ? calcStudentFare(result.transfer.leg1.fare)
                       : result.transfer.leg1.fare}
                   </span>
                 </div>
@@ -293,7 +298,7 @@ export function FareResultCard({
                   <span className="ml-auto shrink-0 text-gray-400 dark:text-slate-500">
                     {result.transfer.leg2.distance} {t(lang, "km")} · ৳
                     {showStudentFare
-                      ? Math.ceil(result.transfer.leg2.fare / 2)
+                      ? calcStudentFare(result.transfer.leg2.fare)
                       : result.transfer.leg2.fare}
                   </span>
                 </div>
