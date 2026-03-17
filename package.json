@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "dev": "concurrently \"npm run dev --prefix apps/api\" \"npm run dev --prefix apps/web\"",
-    "build": "npm run build --prefix apps/web",
+    "build": "npm run install:all && npm run build --prefix apps/web",
     "install:all": "npm install && npm install --prefix apps/api && npm install --prefix apps/web"
   },
   "devDependencies": {
