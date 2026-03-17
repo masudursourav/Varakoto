@@ -26,6 +26,22 @@ const DIRECT_CACHE = path.resolve(process.cwd(), ".direct-distance-cache.json");
 // by ~10% due to hop-by-hop road detours
 const DIJKSTRA_FACTOR = 0.90;
 
+// Manual distance overrides (take priority over all other sources)
+function overrideKey(a: string, b: string): string {
+  return [a.toLowerCase().trim(), b.toLowerCase().trim()].sort().join("||");
+}
+const MANUAL_OVERRIDES: Record<string, number> = {
+  [overrideKey("azampur", "mirpur 11")]: 11.6,
+  [overrideKey("azampur", "mirpur-11")]: 11.6,
+  [overrideKey("azampur", "mirpur 10")]: 10.5,
+  [overrideKey("azampur", "mirpur-10")]: 10.5,
+  [overrideKey("azampur", "mohakhali")]: 8.5,
+  [overrideKey("azampur", "farmgate")]: 14.0,
+  [overrideKey("azampur", "tongi")]: 7.0,
+  [overrideKey("azampur", "rajlakshmi")]: 5.5,
+  [overrideKey("azampur", "house building")]: 12.0,
+};
+
 type Graph = Map<string, Map<string, number>>;
 
 let graph: Graph | null = null;
@@ -164,6 +180,11 @@ export async function getConsensusDistance(
   await ensureReady();
 
   const key = pairKey(stop1En, stop2En);
+
+  // Source 0: Manual override (highest priority)
+  if (key in MANUAL_OVERRIDES) {
+    return MANUAL_OVERRIDES[key];
+  }
 
   // Source 1: Precomputed Google direct distance (most accurate)
   const googleDirect = directCache![key];
