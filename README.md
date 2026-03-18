@@ -138,6 +138,14 @@ npx tsx scripts/calibrate-factor.ts
 4. Fare = `max(min_fare, distance x 2.41)`, rounded to nearest taka
 5. Results sorted by fare, deduplicated by bus name
 
+## Supported By
+
+<a href="https://barikoi.com" target="_blank">
+  <img src="apps/web/public/barikoi-logo.svg" alt="Barikoi Maps" height="30" />
+</a>
+
+Location data and geocoding services powered by [Barikoi Maps](https://barikoi.com).
+
 ## License
 
 MIT
