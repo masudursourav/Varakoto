@@ -58,9 +58,9 @@ export function ResultsContent() {
   }, [origin, destination, router, lang]);
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-slate-950">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       {/* Sticky Header */}
-      <header className="sticky-header sticky top-13 z-40 border-b border-gray-200 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/90">
+      <header className="sticky-header sticky top-14 z-40 border-b border-gray-200 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/90">
         <div className="mx-auto flex max-w-md items-center justify-between">
           <div className="flex items-center space-x-2">
             <button

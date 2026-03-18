@@ -8,7 +8,6 @@ export function Navbar() {
   return (
     <header
       className="glass-header sticky top-0 z-50 flex items-center justify-between bg-white/80 px-4 py-3 backdrop-blur-md dark:bg-slate-900/80"
-      style={{ borderBottom: "1px solid rgba(255,255,255,0.2)" }}
     >
       <div className="flex items-center gap-2">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1a4a8e]">
@@ -19,38 +18,45 @@ export function Navbar() {
         </h1>
       </div>
 
-      {/* Language Toggle Pill */}
-      <button
-        onClick={toggle}
-        className="relative flex w-24 cursor-pointer items-center rounded-full bg-slate-200 p-1 dark:bg-slate-700"
-        aria-label="Toggle language"
+      {/* Language Toggle — sliding pill */}
+      <div
+        role="radiogroup"
+        aria-label="Language"
+        className="relative flex rounded-full bg-slate-200 p-0.5 dark:bg-slate-700"
       >
+        {/* Sliding indicator */}
         <div
-          className={`absolute flex h-6 w-10 items-center justify-center rounded-full bg-white shadow-sm transition-all duration-300 dark:bg-slate-500 ${
-            lang === "bn" ? "left-1" : "left-[calc(100%-2.75rem)]"
+          className={`absolute top-0.5 h-[calc(100%-4px)] w-[calc(50%-2px)] rounded-full bg-white shadow-sm transition-transform duration-300 ease-in-out dark:bg-slate-500 ${
+            lang === "en" ? "translate-x-[calc(100%+2px)]" : "translate-x-0"
+          }`}
+        />
+        <button
+          role="radio"
+          aria-checked={lang === "bn"}
+          aria-label="বাংলা"
+          onClick={lang !== "bn" ? toggle : undefined}
+          className={`relative z-10 rounded-full px-3 py-1 text-[11px] font-bold transition-colors duration-300 ${
+            lang === "bn"
+              ? "text-[#1a4a8e] dark:text-white"
+              : "text-slate-500 dark:text-slate-400"
           }`}
         >
-          <span className="text-[10px] font-bold text-[#1a4a8e] dark:text-white">
-            {lang === "bn" ? "BN" : "EN"}
-          </span>
-        </div>
-        <div className="flex w-full justify-around">
-          <span
-            className={`text-[10px] font-medium ${
-              lang === "bn" ? "opacity-0" : "text-slate-500 dark:text-slate-400"
-            }`}
-          >
-            BN
-          </span>
-          <span
-            className={`text-[10px] font-medium ${
-              lang === "en" ? "opacity-0" : "text-slate-500 dark:text-slate-400"
-            }`}
-          >
-            EN
-          </span>
-        </div>
-      </button>
+          BN
+        </button>
+        <button
+          role="radio"
+          aria-checked={lang === "en"}
+          aria-label="English"
+          onClick={lang !== "en" ? toggle : undefined}
+          className={`relative z-10 rounded-full px-3 py-1 text-[11px] font-bold transition-colors duration-300 ${
+            lang === "en"
+              ? "text-[#1a4a8e] dark:text-white"
+              : "text-slate-500 dark:text-slate-400"
+          }`}
+        >
+          EN
+        </button>
+      </div>
     </header>
   );
 }

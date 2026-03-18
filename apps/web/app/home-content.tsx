@@ -21,6 +21,7 @@ import {
   ChevronRight,
   MapPin,
   Crosshair,
+  X,
 } from "lucide-react";
 
 const BRTA_HELPLINE = "16107";
@@ -37,6 +38,12 @@ export function HomeContent() {
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<SearchHistoryItem[]>([]);
   const [locating, setLocating] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+
+  const showToast = (message: string) => {
+    setToast(message);
+    setTimeout(() => setToast(null), 4000);
+  };
 
   // Fetch stops once on mount.
   // `lang` is intentionally excluded from the dependency array:
@@ -92,7 +99,7 @@ export function HomeContent() {
 
   const handleLocate = () => {
     if (!navigator.geolocation) {
-      alert(t(lang, "locationError"));
+      showToast(t(lang, "locationError"));
       return;
     }
 
@@ -113,7 +120,7 @@ export function HomeContent() {
             }
           }
         } catch {
-          alert(t(lang, "locationError"));
+          showToast(t(lang, "locationError"));
         } finally {
           setLocating(false);
         }
@@ -121,9 +128,9 @@ export function HomeContent() {
       (err) => {
         setLocating(false);
         if (err.code === err.PERMISSION_DENIED) {
-          alert(t(lang, "locationDenied"));
+          showToast(t(lang, "locationDenied"));
         } else {
-          alert(t(lang, "locationError"));
+          showToast(t(lang, "locationError"));
         }
       },
       { enableHighAccuracy: true, timeout: 10000 },
@@ -140,6 +147,26 @@ export function HomeContent() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+      {/* Toast notification */}
+      {toast && (
+        <div className="fixed left-1/2 top-16 z-[60] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="flex items-center gap-3 rounded-2xl border border-red-100 bg-white px-4 py-3 shadow-lg dark:border-red-900 dark:bg-slate-900">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-50 dark:bg-red-900/30">
+              <MapPin className="h-4 w-4 text-red-500" />
+            </div>
+            <p className="flex-1 text-sm font-medium text-slate-700 dark:text-slate-300">
+              {toast}
+            </p>
+            <button
+              onClick={() => setToast(null)}
+              className="shrink-0 rounded-full p-1 text-slate-400 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       <main className="px-4 pb-20">
         {/* Search Card */}
         <section className="mb-8 mt-6">
@@ -188,6 +215,17 @@ export function HomeContent() {
                     )}
                   </div>
 
+                  {/* Swap Button — centered between the two fields */}
+                  <div className="flex justify-center">
+                    <button
+                      onClick={handleSwap}
+                      className="rounded-full bg-[#1a4a8e] p-2 text-white shadow-lg transition active:scale-90"
+                      aria-label={t(lang, "swap")}
+                    >
+                      <ArrowUpDown className="h-5 w-5" />
+                    </button>
+                  </div>
+
                   <StopAutocomplete
                     stops={stops}
                     value={destination}
@@ -196,17 +234,6 @@ export function HomeContent() {
                     label={t(lang, "destination")}
                     icon="destination"
                   />
-                </div>
-
-                {/* Swap Button */}
-                <div className="absolute right-8 top-1/2 z-10 -translate-y-1/2">
-                  <button
-                    onClick={handleSwap}
-                    className="rounded-full bg-[#1a4a8e] p-2 text-white shadow-lg transition active:scale-90"
-                    aria-label={t(lang, "swap")}
-                  >
-                    <ArrowUpDown className="h-5 w-5" />
-                  </button>
                 </div>
 
                 {/* Calculate Button */}
