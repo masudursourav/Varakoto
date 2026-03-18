@@ -231,6 +231,25 @@ export function HomeContent() {
                       : `${stops.length} stops available`}
                   </span>
                 </div>
+
+                {/* Barikoi attribution */}
+                <div className="mt-4 flex flex-col items-center gap-1">
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500">
+                    {lang === "bn" ? "সহযোগিতায়" : "Supported by"}
+                  </span>
+                  <a
+                    href="https://barikoi.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="/barikoi-logo.svg"
+                      alt="Barikoi Maps"
+                      className="h-5 dark:brightness-0 dark:invert"
+                    />
+                  </a>
+                </div>
               </>
             )}
           </div>

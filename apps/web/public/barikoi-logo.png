@@ -1,0 +1,124 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Barikoi Maps | #1 Maps Platform for Bangladesh &amp; Emerging Markets</title>
+    <meta name="description" content="Barikoi provides 3-7× cheaper mapping solutions than Google Maps for Bangladesh, Pakistan, Kenya, and other emerging markets. Powerful location APIs, geocoding, and tracking solutions." />
+    <meta name="author" content="Barikoi" />
+    <meta name="keywords" content="maps bangladesh, bangladesh maps, maps in bangladesh, location api bangladesh, geocoding bangladesh, map alternative, google maps alternative, map api, location services, geocoding, route optimization, bangladesh, dhaka, emerging markets" />
+    
+    <!-- Preconnect to critical domains -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://map.barikoi.com" crossorigin />
+    <link rel="preconnect" href="https://geoserver.bmapsbd.com" crossorigin />
+    
+    <!-- Google Analytics preconnect -->
+    <link rel="preconnect" href="https://www.googletagmanager.com" />
+    <link rel="preconnect" href="https://www.google-analytics.com" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://barikoi.com/" />
+    <meta property="og:title" content="Barikoi Maps | #1 Maps Platform for Bangladesh &amp; Emerging Markets" />
+    <meta property="og:description" content="Barikoi provides 3-7× cheaper mapping solutions than Google Maps for Bangladesh, Pakistan, Kenya, and other emerging markets. Powerful location APIs, geocoding, and tracking solutions." />
+    <meta property="og:image" content="/lovable-uploads/fa94013f-be2a-4dce-bcde-091677f4213d.png" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@barikoibd" />
+    <meta name="twitter:title" content="Barikoi Maps | #1 Maps Platform for Bangladesh &amp; Emerging Markets" />
+    <meta name="twitter:description" content="Barikoi provides 3-7× cheaper mapping solutions than Google Maps for Bangladesh, Pakistan, Kenya, and other emerging markets. Powerful location APIs, geocoding, and tracking solutions." />
+    <meta property="twitter:image" content="/lovable-uploads/fa94013f-be2a-4dce-bcde-091677f4213d.png" />
+
+    <!-- Canonical link -->
+    <link rel="canonical" href="https://barikoi.com/" />
+    
+    <!-- Geo Tags -->
+    <meta name="geo.region" content="BD" />
+    <meta name="geo.placename" content="Dhaka" />
+    <meta name="geo.position" content="23.8103;90.4125" />
+    <meta name="ICBM" content="23.8103, 90.4125" />
+    
+    <!-- Favicon with optimal caching -->
+    <link rel="icon" type="image/png" href="/lovable-uploads/03d24b15-45b3-4023-8b96-84c6a7a64267.png" />
+    <link rel="apple-touch-icon" href="/lovable-uploads/03d24b15-45b3-4023-8b96-84c6a7a64267.png" />
+    
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-FH9FM3GEX9"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-FH9FM3GEX9');
+    </script>
+    
+    <!-- Plausible Analytics -->
+    <script defer data-domain="barikoi.com" src="https://plausible.barikoimaps.dev/js/script.js"></script>
+    
+    <!-- Structured data for local business -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "Barikoi",
+        "url": "https://barikoi.com",
+        "logo": "https://barikoi.com/logo.png",
+        "description": "Affordable mapping solutions for Bangladesh and emerging markets. Alternative to Google Maps with 3-7× cost savings.",
+        "address": {
+          "@type": "PostalAddress",
+          "addressLocality": "Dhaka",
+          "addressRegion": "Dhaka",
+          "addressCountry": "BD"
+        },
+        "sameAs": [
+          "https://www.facebook.com/barikoibd",
+          "https://twitter.com/barikoibd",
+          "https://www.linkedin.com/company/barikoi"
+        ]
+      }
+    </script>
+    
+    <!-- Apollo Tracking -->
+    <script>
+      function initApollo() {
+        var n = Math.random().toString(36).substring(7);
+        var script = document.createElement("script");
+        script.src = "https://assets.apollo.io/micro/website-tracker/tracker.iife.js?nocache=" + n;
+        script.async = true;
+        script.defer = true;
+        script.onload = function() {
+          try {
+            if (window.trackingFunctions && typeof window.trackingFunctions.onLoad === 'function') {
+              window.trackingFunctions.onLoad({appId: "68e34d6890a3e50019dfd7b9"});
+            }
+          } catch (e) {
+            console.error('Apollo tracking initialization error:', e);
+          }
+        };
+        script.onerror = function() {
+          console.error('Failed to load Apollo tracking script');
+        };
+        document.head.appendChild(script);
+      }
+      initApollo();
+    </script>
+    <script type="module" crossorigin src="/assets/index-C_PB2UMK.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/vendor-react-DTdTrAaS.js">
+    <link rel="modulepreload" crossorigin href="/assets/vendor-query-B4hRdNTT.js">
+    <link rel="modulepreload" crossorigin href="/assets/ui-radix-OplT78nQ.js">
+    <link rel="modulepreload" crossorigin href="/assets/charts-DgsN5UnG.js">
+    <link rel="modulepreload" crossorigin href="/assets/icons-BclkFMt9.js">
+    <link rel="modulepreload" crossorigin href="/assets/vendor-router-HByZ6od5.js">
+    <link rel="modulepreload" crossorigin href="/assets/vendor-maps-BK287_Dx.js">
+    <link rel="stylesheet" crossorigin href="/assets/index-Cc6kVjBK.css">
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
+    <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
+  </body>
+</html>
