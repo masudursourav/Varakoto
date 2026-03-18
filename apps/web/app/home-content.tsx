@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/context/language-context";
 import { t } from "@/lib/i18n";
-import { fetchStops, type StopItem } from "@/lib/api";
+import { fetchStops, fetchNearestStops, type StopItem } from "@/lib/api";
 import {
   getHistory,
   addToHistory,
@@ -20,9 +20,10 @@ import {
   Clock,
   ChevronRight,
   MapPin,
+  Crosshair,
 } from "lucide-react";
 
-const BRTA_HELPLINE = "16163";
+const BRTA_HELPLINE = "16107";
 
 export function HomeContent() {
   const { lang } = useLanguage();
@@ -35,6 +36,7 @@ export function HomeContent() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<SearchHistoryItem[]>([]);
+  const [locating, setLocating] = useState(false);
 
   // Fetch stops once on mount.
   // `lang` is intentionally excluded from the dependency array:
@@ -88,6 +90,46 @@ export function HomeContent() {
     );
   };
 
+  const handleLocate = () => {
+    if (!navigator.geolocation) {
+      alert(t(lang, "locationError"));
+      return;
+    }
+
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          const nearest = await fetchNearestStops(latitude, longitude);
+          if (nearest.length > 0) {
+            // Find matching stop from loaded stops list
+            const match = stops.find(
+              (s) =>
+                s.name_en.toLowerCase() === nearest[0].name_en.toLowerCase(),
+            );
+            if (match) {
+              setOrigin(match);
+            }
+          }
+        } catch {
+          alert(t(lang, "locationError"));
+        } finally {
+          setLocating(false);
+        }
+      },
+      (err) => {
+        setLocating(false);
+        if (err.code === err.PERMISSION_DENIED) {
+          alert(t(lang, "locationDenied"));
+        } else {
+          alert(t(lang, "locationError"));
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  };
+
   const canSubmit =
     origin &&
     destination &&
@@ -119,14 +161,32 @@ export function HomeContent() {
             ) : (
               <>
                 <div className="space-y-4">
-                  <StopAutocomplete
-                    stops={stops}
-                    value={origin}
-                    onChange={setOrigin}
-                    placeholder={t(lang, "originPlaceholder")}
-                    label={t(lang, "origin")}
-                    icon="origin"
-                  />
+                  <div>
+                    <StopAutocomplete
+                      stops={stops}
+                      value={origin}
+                      onChange={setOrigin}
+                      placeholder={t(lang, "originPlaceholder")}
+                      label={t(lang, "origin")}
+                      icon="origin"
+                    />
+                    {!origin && (
+                      <button
+                        onClick={handleLocate}
+                        disabled={locating}
+                        className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-blue-300 bg-blue-50/80 py-2.5 text-sm font-medium text-[#1a4a8e] transition-all hover:border-blue-400 hover:bg-blue-100 active:scale-[0.98] disabled:opacity-50 dark:border-blue-700 dark:bg-blue-900/20 dark:text-blue-300 dark:hover:bg-blue-900/40"
+                      >
+                        {locating ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Crosshair className="h-4 w-4" />
+                        )}
+                        {locating
+                          ? t(lang, "locating")
+                          : t(lang, "locateMe")}
+                      </button>
+                    )}
+                  </div>
 
                   <StopAutocomplete
                     stops={stops}

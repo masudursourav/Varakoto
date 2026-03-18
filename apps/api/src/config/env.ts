@@ -21,8 +21,11 @@ const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "http://localhost:3000")
   .map((o) => o.trim())
   .filter(Boolean);
 
+const BARIKOI_API_KEY = process.env.BARIKOI_API_KEY || "";
+
 export const env = {
   MONGODB_URI,
   PORT,
   ALLOWED_ORIGINS,
+  BARIKOI_API_KEY,
 } as const;

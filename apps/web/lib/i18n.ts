@@ -89,6 +89,11 @@ const translations = {
     destinationLabel: "গন্তব্য",
     studentFareLabel: "শিক্ষার্থী ভাড়া",
     expresswayNote: "এই বাসটি ঢাকা এলিভেটেড এক্সপ্রেসওয়ে ব্যবহার করতে পারে (উত্তরা–ফার্মগেট করিডর)।",
+    locateMe: "কাছের স্টপ খুঁজুন",
+    locating: "অবস্থান খোঁজা হচ্ছে...",
+    locationError: "অবস্থান পাওয়া যায়নি",
+    nearestStop: "নিকটতম স্টপ",
+    locationDenied: "অবস্থান অনুমতি প্রত্যাখ্যান করা হয়েছে",
   },
   en: {
     appName: "Vara Koto",
@@ -178,6 +183,11 @@ const translations = {
     destinationLabel: "Destination",
     studentFareLabel: "Student Fare",
     expresswayNote: "This bus may use the Dhaka Elevated Expressway (Uttara–Farmgate corridor).",
+    locateMe: "Find nearest stop",
+    locating: "Finding location...",
+    locationError: "Could not get location",
+    nearestStop: "Nearest Stop",
+    locationDenied: "Location permission denied",
   },
 } as const;
 

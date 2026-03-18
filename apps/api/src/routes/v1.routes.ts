@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { getStops } from "../controllers/stops.controller.js";
 import { calculateFare } from "../controllers/fare.controller.js";
+import { getNearestStop } from "../controllers/nearestStop.controller.js";
 import {
   validateBody,
   FareRequestSchema,
@@ -10,5 +11,6 @@ const router = Router();
 
 router.get("/stops", getStops);
 router.post("/fare/calculate", validateBody(FareRequestSchema), calculateFare);
+router.get("/nearest-stop", getNearestStop);
 
 export default router;

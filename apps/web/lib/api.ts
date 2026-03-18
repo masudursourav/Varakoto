@@ -99,6 +99,27 @@ export function invalidateStopsCache(): void {
  * @param origin      - Stop name in English or Bengali (as selected by user)
  * @param destination - Stop name in English or Bengali (as selected by user)
  */
+export interface NearestStopItem {
+  name_en: string;
+  name_bn: string;
+  distance_km: number;
+}
+
+/**
+ * Find nearest bus stops to given GPS coordinates.
+ */
+export async function fetchNearestStops(
+  lat: number,
+  lng: number,
+): Promise<NearestStopItem[]> {
+  const res = await fetch(
+    `${API_BASE}/api/v1/nearest-stop?lat=${lat}&lng=${lng}`,
+  );
+  if (!res.ok) throw new Error("Failed to fetch nearest stops");
+  const json = await res.json();
+  return json.data;
+}
+
 export async function calculateFare(
   origin: string,
   destination: string,
