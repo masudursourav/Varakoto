@@ -199,6 +199,33 @@ export async function fetchRouteToStop(
   }
 }
 
+export interface NearbyStop {
+  name_en: string;
+  name_bn: string;
+  lat: number;
+  lng: number;
+  distance_km: number;
+}
+
+/**
+ * Fetch all bus stops near the user's GPS position (within ~5km).
+ */
+export async function fetchNearbyStops(
+  lat: number,
+  lng: number,
+): Promise<NearbyStop[]> {
+  try {
+    const res = await fetch(
+      `${API_BASE}/api/v1/nearby-stops?lat=${lat}&lng=${lng}`,
+    );
+    if (!res.ok) return [];
+    const json = await res.json();
+    return json.data ?? [];
+  } catch {
+    return [];
+  }
+}
+
 export async function calculateFare(
   origin: string,
   destination: string,

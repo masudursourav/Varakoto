@@ -28,6 +28,7 @@ import {
   ChevronRight,
   MapPin,
   Crosshair,
+  Map,
   X,
 } from "lucide-react";
 
@@ -52,6 +53,12 @@ const NearestStopRoute = dynamic(
   },
 );
 
+const NearbyStopsMap = dynamic(
+  () =>
+    import("@/components/nearby-stops-map").then((m) => m.NearbyStopsMap),
+  { ssr: false },
+);
+
 const BRTA_HELPLINE = "16107";
 
 export function HomeContent() {
@@ -67,6 +74,10 @@ export function HomeContent() {
   const [history, setHistory] = useState<SearchHistoryItem[]>([]);
   const [locating, setLocating] = useState(false);
   const [nearestRoute, setNearestRoute] = useState<RouteToStop | null>(null);
+  const [nearbyMapCoords, setNearbyMapCoords] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   const showToast = (message: string) => {
@@ -170,6 +181,38 @@ export function HomeContent() {
     setNearestRoute(null);
   };
 
+  const handleOpenNearbyMap = () => {
+    if (!navigator.geolocation) {
+      showToast(t(lang, "locationError"));
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setNearbyMapCoords({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        });
+      },
+      (err) => {
+        if (err.code === err.PERMISSION_DENIED) {
+          showToast(t(lang, "locationDenied"));
+        } else {
+          showToast(t(lang, "locationError"));
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  };
+
+  const handleNearbySelect = (stop: StopItem) => {
+    const match = stops.find(
+      (s) => s.name_en.toLowerCase() === stop.name_en.toLowerCase(),
+    );
+    if (match) setOrigin(match);
+    setNearbyMapCoords(null);
+  };
+
   const canSubmit =
     origin &&
     destination &&
@@ -180,6 +223,16 @@ export function HomeContent() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+      {/* Nearby Stops Map overlay */}
+      {nearbyMapCoords && (
+        <NearbyStopsMap
+          userLat={nearbyMapCoords.lat}
+          userLng={nearbyMapCoords.lng}
+          onSelect={handleNearbySelect}
+          onDismiss={() => setNearbyMapCoords(null)}
+        />
+      )}
+
       {/* Toast notification */}
       {toast && (
         <div className="fixed left-1/2 top-16 z-[60] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 animate-in fade-in slide-in-from-top-2 duration-200">
@@ -229,20 +282,29 @@ export function HomeContent() {
                       icon="origin"
                     />
                     {!origin && !nearestRoute && (
-                      <button
-                        onClick={handleLocate}
-                        disabled={locating}
-                        className="mt-2 flex w-full items-center justify-center gap-2 rounded-panel border border-dashed border-blue-300 bg-blue-50/80 py-2.5 text-sm font-medium text-primary transition-all hover:border-blue-400 hover:bg-blue-100 active:scale-[0.98] disabled:opacity-50 dark:border-blue-700 dark:bg-blue-900/20 dark:hover:bg-blue-900/40"
-                      >
-                        {locating ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Crosshair className="h-4 w-4" />
-                        )}
-                        {locating
-                          ? t(lang, "locating")
-                          : t(lang, "locateMe")}
-                      </button>
+                      <div className="mt-2 flex gap-2">
+                        <button
+                          onClick={handleLocate}
+                          disabled={locating}
+                          className="flex flex-1 items-center justify-center gap-2 rounded-panel border border-dashed border-blue-300 bg-blue-50/80 py-2.5 text-sm font-medium text-primary transition-all hover:border-blue-400 hover:bg-blue-100 active:scale-[0.98] disabled:opacity-50 dark:border-blue-700 dark:bg-blue-900/20 dark:hover:bg-blue-900/40"
+                        >
+                          {locating ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Crosshair className="h-4 w-4" />
+                          )}
+                          {locating
+                            ? t(lang, "locating")
+                            : t(lang, "locateMe")}
+                        </button>
+                        <button
+                          onClick={handleOpenNearbyMap}
+                          className="flex items-center justify-center gap-1.5 rounded-panel border border-dashed border-blue-300 bg-blue-50/80 px-3 py-2.5 text-sm font-medium text-primary transition-all hover:border-blue-400 hover:bg-blue-100 active:scale-[0.98] dark:border-blue-700 dark:bg-blue-900/20 dark:hover:bg-blue-900/40"
+                          aria-label={lang === "bn" ? "ম্যাপে দেখুন" : "Browse map"}
+                        >
+                          <Map className="h-4 w-4" />
+                        </button>
+                      </div>
                     )}
                     {!origin && nearestRoute && (
                       <div className="mt-2">
