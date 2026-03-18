@@ -12,15 +12,19 @@ A bilingual (Bengali/English) BRTA fare calculator for Dhaka bus commuters. Sele
 - **Multi-bus Transfers** — Suggests transfer routes when no direct route exists
 - **Offline Support** — PWA with service worker, versioned cache busting, and skeleton loading screens
 - **Accessible** — Screen-reader-friendly navigation separators, semantic markup
-- **Nearest Stop** — GPS-based origin detection via Barikoi reverse geocoding
+- **Nearest Stop with Route** — GPS-based origin detection with walking route visualization to the nearest bus stop (inline + fullscreen map)
+- **Route Preview** — Interactive map preview showing origin and destination stops before fare calculation
+- **Barikoi Place Search** — Fallback autocomplete via Barikoi when a typed query doesn't match any known stop, mapping places to the nearest bus stop
+- **Elevated Expressway** — Automatic detection when a route may use the Dhaka Elevated Expressway (Kawla–Farmgate corridor)
 
 ## Tech Stack
 
 | Layer | Stack |
 |-------|-------|
-| Frontend | Next.js 16, React 19, Tailwind CSS 4, shadcn/ui v4 |
+| Frontend | Next.js 16, React 19, Tailwind CSS 4, shadcn/ui v4, Leaflet |
 | Backend | Express 5, Mongoose, TypeScript |
 | Database | MongoDB Atlas |
+| Maps | Leaflet + OpenStreetMap tiles, Barikoi Geocoding & Routing APIs |
 | Runtime | Node.js 20+ via tsx |
 
 ## Getting Started
@@ -48,6 +52,7 @@ npm run install:all
 ```env
 MONGODB_URI=mongodb+srv://...
 PORT=5001
+BARIKOI_API_KEY=your_barikoi_api_key
 ```
 
 **Frontend** — copy `apps/web/.env.example` to `apps/web/.env.local`:
@@ -73,14 +78,14 @@ varakoto/
 ├── apps/
 │   ├── api/          # Express 5 REST API
 │   │   ├── src/
-│   │   │   ├── controllers/   # Route handlers (fare, stops)
+│   │   │   ├── controllers/   # Route handlers (fare, stops, nearest stop, place search, routing)
 │   │   │   ├── models/        # Mongoose schemas
-│   │   │   ├── utils/         # Stop aliases, distance consensus, text normalization
+│   │   │   ├── utils/         # Stop aliases, distance consensus, text normalization, geo utilities
 │   │   │   └── server.ts      # Entry point
 │   │   └── scripts/           # Distance precomputation & calibration tools
 │   └── web/          # Next.js frontend
 │       ├── app/               # App Router pages (home, results, history, settings)
-│       ├── components/        # UI components (navbar, bottom-nav, fare cards)
+│       ├── components/        # UI components (navbar, bottom-nav, fare cards, map previews)
 │       ├── context/           # Language & theme providers
 │       └── lib/               # API client, i18n, history
 └── package.json      # Monorepo root with concurrently
@@ -94,6 +99,9 @@ varakoto/
 | `GET` | `/api/v1/stops` | Returns all unique stops with Bengali & English names |
 | `POST` | `/api/v1/fare/calculate` | Calculates fare for origin → destination |
 | `GET` | `/api/v1/nearest-stop?lat=...&lng=...` | GPS-based nearest stop finder |
+| `GET` | `/api/v1/search/places?q=...` | Barikoi Autocomplete proxy — maps places to nearest bus stops |
+| `GET` | `/api/v1/stop-coords?origin=...&destination=...` | Returns GPS coordinates for two stops (with Barikoi geocoding fallback) |
+| `GET` | `/api/v1/route-to-stop?lat=...&lng=...` | Walking route from user's position to nearest bus stop via Barikoi Routing |
 
 ### Example Request
 
@@ -155,13 +163,19 @@ Changing `--radius` or `--primary` in `:root` scales the entire UI proportionall
 4. Fare = `max(min_fare, distance x 2.41)`, rounded to nearest taka
 5. Results sorted by fare, deduplicated by bus name
 
+## Map Features
+
+- **Route Preview** — When both origin and destination are selected, an interactive Leaflet map appears showing the two stops with a dashed corridor line. Supports zoom (+/−) and drag.
+- **Nearest Stop Route** — After GPS detection, a walking route map shows the path from the user's current position to the nearest bus stop, with distance and estimated walking time. Supports inline and fullscreen views.
+- **Barikoi Integration** — Stop coordinate lookup uses hardcoded STOP_COORDS (69 major stops) with automatic Barikoi forward geocoding fallback for stops not in the hardcoded set. Walking routes are fetched via the Barikoi Routing API.
+
 ## Supported By
 
 <a href="https://barikoi.com" target="_blank">
   <img src="apps/web/public/barikoi-logo.svg" alt="Barikoi Maps" height="30" />
 </a>
 
-Location data and geocoding services powered by [Barikoi Maps](https://barikoi.com).
+Location data, geocoding, autocomplete, and routing services powered by [Barikoi Maps](https://barikoi.com).
 
 ## License
 

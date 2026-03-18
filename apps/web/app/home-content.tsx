@@ -4,7 +4,12 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/context/language-context";
 import { t } from "@/lib/i18n";
-import { fetchStops, fetchNearestStops, type StopItem } from "@/lib/api";
+import {
+  fetchStops,
+  fetchRouteToStop,
+  type StopItem,
+  type RouteToStop
+} from "@/lib/api";
 import {
   getHistory,
   addToHistory,
@@ -36,6 +41,17 @@ const RoutePreview = dynamic(
   },
 );
 
+const NearestStopRoute = dynamic(
+  () =>
+    import("@/components/nearest-stop-route").then((m) => m.NearestStopRoute),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-44 animate-pulse rounded-panel bg-slate-100 dark:bg-slate-800" />
+    ),
+  },
+);
+
 const BRTA_HELPLINE = "16107";
 
 export function HomeContent() {
@@ -50,6 +66,7 @@ export function HomeContent() {
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<SearchHistoryItem[]>([]);
   const [locating, setLocating] = useState(false);
+  const [nearestRoute, setNearestRoute] = useState<RouteToStop | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   const showToast = (message: string) => {
@@ -116,20 +133,16 @@ export function HomeContent() {
     }
 
     setLocating(true);
+    setNearestRoute(null);
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         try {
           const { latitude, longitude } = position.coords;
-          const nearest = await fetchNearestStops(latitude, longitude);
-          if (nearest.length > 0) {
-            // Find matching stop from loaded stops list
-            const match = stops.find(
-              (s) =>
-                s.name_en.toLowerCase() === nearest[0].name_en.toLowerCase(),
-            );
-            if (match) {
-              setOrigin(match);
-            }
+          const routeData = await fetchRouteToStop(latitude, longitude);
+          if (routeData) {
+            setNearestRoute(routeData);
+          } else {
+            showToast(t(lang, "locationError"));
           }
         } catch {
           showToast(t(lang, "locationError"));
@@ -147,6 +160,14 @@ export function HomeContent() {
       },
       { enableHighAccuracy: true, timeout: 10000 },
     );
+  };
+
+  const handleNearestStopConfirm = (stop: StopItem) => {
+    const match = stops.find(
+      (s) => s.name_en.toLowerCase() === stop.name_en.toLowerCase(),
+    );
+    if (match) setOrigin(match);
+    setNearestRoute(null);
   };
 
   const canSubmit =
@@ -207,7 +228,7 @@ export function HomeContent() {
                       label={t(lang, "origin")}
                       icon="origin"
                     />
-                    {!origin && (
+                    {!origin && !nearestRoute && (
                       <button
                         onClick={handleLocate}
                         disabled={locating}
@@ -222,6 +243,15 @@ export function HomeContent() {
                           ? t(lang, "locating")
                           : t(lang, "locateMe")}
                       </button>
+                    )}
+                    {!origin && nearestRoute && (
+                      <div className="mt-2">
+                        <NearestStopRoute
+                          data={nearestRoute}
+                          onConfirm={handleNearestStopConfirm}
+                          onDismiss={() => setNearestRoute(null)}
+                        />
+                      </div>
                     )}
                   </div>
 
