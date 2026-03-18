@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/context/theme-context";
 import { Navbar } from "@/components/navbar";
 import { BottomNav } from "@/components/bottom-nav";
 import { PwaRegister } from "@/components/pwa-register";
+import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 
 const inter = Inter({
@@ -97,6 +98,7 @@ export default function RootLayout({
 
         {/* Register the PWA service worker after the page has mounted */}
         <PwaRegister />
+        <Analytics />
       </body>
     </html>
   );
