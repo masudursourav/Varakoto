@@ -10,16 +10,14 @@ import {
 import { t } from "@/lib/i18n";
 import { ChevronRight, Clock, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export default function HistoryPage() {
   const { lang } = useLanguage();
   const router = useRouter();
-  const [history, setHistory] = useState<SearchHistoryItem[]>([]);
-
-  useEffect(() => {
-    setHistory(getHistory());
-  }, []);
+  const [history, setHistory] = useState<SearchHistoryItem[]>(() =>
+    getHistory(),
+  );
 
   const handleClear = () => {
     clearHistory();

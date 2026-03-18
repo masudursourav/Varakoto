@@ -4,7 +4,6 @@ import {
   createContext,
   useContext,
   useState,
-  useEffect,
   type ReactNode,
 } from "react";
 import type { Language } from "@/lib/i18n";
@@ -20,16 +19,11 @@ const LanguageContext = createContext<LanguageContextType | undefined>(
 );
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [lang, setLangState] = useState<Language>("bn");
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    const stored = localStorage.getItem("varakoto-lang") as Language | null;
-    if (stored === "en" || stored === "bn") {
-      setLangState(stored);
-    }
-    setMounted(true);
-  }, []);
+  const [lang, setLangState] = useState<Language>(() => {
+    if (typeof window === "undefined") return "bn";
+    const stored = localStorage.getItem("varakoto-lang");
+    return stored === "en" || stored === "bn" ? stored : "bn";
+  });
 
   const setLang = (newLang: Language) => {
     setLangState(newLang);

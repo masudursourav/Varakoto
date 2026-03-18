@@ -158,12 +158,6 @@ export function StopAutocomplete({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // ── Reset highlight when results change ─────────────────────────────────────
-  useEffect(() => {
-    setHighlightIndex(-1);
-    itemRefs.current = [];
-  }, [query]);
-
   // ── Scroll highlighted item into view ───────────────────────────────────────
   useEffect(() => {
     if (highlightIndex >= 0 && itemRefs.current[highlightIndex]) {
@@ -274,6 +268,8 @@ export function StopAutocomplete({
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
+              setHighlightIndex(-1);
+              itemRefs.current = [];
               setIsOpen(true);
             }}
             onFocus={() => {
