@@ -122,3 +122,33 @@ export function findNearestByCoords(
   results.sort((a, b) => a.distance - b.distance);
   return results.slice(0, limit);
 }
+
+/**
+ * Find stops within `radiusKm` of the given point, including their coordinates.
+ * Returns at most `limit` results sorted by distance ascending.
+ * Deduplicates stops that share the same coordinates (e.g. "mirpur 10" / "mirpur-10").
+ */
+export function findNearbyWithCoords(
+  lat: number,
+  lng: number,
+  radiusKm: number,
+  limit: number,
+): { name: string; lat: number; lng: number; distance: number }[] {
+  const results: { name: string; lat: number; lng: number; distance: number }[] = [];
+  const seen = new Set<string>();
+
+  for (const [name, [sLat, sLng]] of Object.entries(STOP_COORDS)) {
+    const dist = haversineKm(lat, lng, sLat, sLng);
+    if (dist > radiusKm) continue;
+
+    // Deduplicate by coordinate key (e.g. "mirpur 10" and "mirpur-10")
+    const coordKey = `${sLat},${sLng}`;
+    if (seen.has(coordKey)) continue;
+    seen.add(coordKey);
+
+    results.push({ name, lat: sLat, lng: sLng, distance: dist });
+  }
+
+  results.sort((a, b) => a.distance - b.distance);
+  return results.slice(0, limit);
+}
