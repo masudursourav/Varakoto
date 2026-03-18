@@ -140,6 +140,30 @@ export async function searchPlaces(query: string): Promise<PlaceSuggestion[]> {
   return json.data ?? [];
 }
 
+export interface StopCoords {
+  origin: { lat: number; lng: number };
+  destination: { lat: number; lng: number };
+}
+
+/**
+ * Fetch GPS coordinates for two stops (used for map preview).
+ */
+export async function fetchStopCoords(
+  origin: string,
+  destination: string,
+): Promise<StopCoords | null> {
+  try {
+    const res = await fetch(
+      `${API_BASE}/api/v1/stop-coords?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}`,
+    );
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function calculateFare(
   origin: string,
   destination: string,

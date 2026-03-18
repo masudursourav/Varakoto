@@ -3,6 +3,7 @@ import { getStops } from "../controllers/stops.controller.js";
 import { calculateFare } from "../controllers/fare.controller.js";
 import { getNearestStop } from "../controllers/nearestStop.controller.js";
 import { searchPlaces } from "../controllers/searchPlaces.controller.js";
+import { getStopCoords } from "../controllers/stopCoords.controller.js";
 import {
   validateBody,
   FareRequestSchema,
@@ -14,5 +15,6 @@ router.get("/stops", getStops);
 router.post("/fare/calculate", validateBody(FareRequestSchema), calculateFare);
 router.get("/nearest-stop", getNearestStop);
 router.get("/search/places", searchPlaces);
+router.get("/stop-coords", getStopCoords);
 
 export default router;
