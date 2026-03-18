@@ -120,6 +120,26 @@ export async function fetchNearestStops(
   return json.data;
 }
 
+export interface PlaceSuggestion {
+  place_name: string;
+  name_en: string;
+  name_bn: string;
+  distance_km: number;
+}
+
+/**
+ * Search places via Barikoi Autocomplete and map to nearest bus stops.
+ * Used as a fallback when local stop filtering yields no results.
+ */
+export async function searchPlaces(query: string): Promise<PlaceSuggestion[]> {
+  const res = await fetch(
+    `${API_BASE}/api/v1/search/places?q=${encodeURIComponent(query)}`,
+  );
+  if (!res.ok) return [];
+  const json = await res.json();
+  return json.data ?? [];
+}
+
 export async function calculateFare(
   origin: string,
   destination: string,

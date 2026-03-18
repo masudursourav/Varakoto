@@ -2,8 +2,9 @@
 
 import { useState, useDeferredValue, useRef, useEffect, useCallback } from "react";
 import { useLanguage } from "@/context/language-context";
-import type { StopItem } from "@/lib/api";
-import { MapPin, X } from "lucide-react";
+import type { StopItem, PlaceSuggestion } from "@/lib/api";
+import { searchPlaces } from "@/lib/api";
+import { MapPin, Navigation, X } from "lucide-react";
 
 interface StopAutocompleteProps {
   stops: StopItem[];
@@ -145,6 +146,48 @@ export function StopAutocomplete({
   const deferredQuery = useDeferredValue(query);
   const filtered = filterStops(stops, deferredQuery, lang);
 
+  // ── Barikoi fallback when local results are empty ─────────────────────────
+  const [barikoiResults, setBarikoiResults] = useState<PlaceSuggestion[]>([]);
+  const [barikoiLoading, setBarikoiLoading] = useState(false);
+  const barikoiTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    // Clear previous timer
+    if (barikoiTimerRef.current) clearTimeout(barikoiTimerRef.current);
+
+    // Only call Barikoi when local results are empty and query is 3+ chars
+    if (filtered.length > 0 || deferredQuery.trim().length < 3) {
+      setBarikoiResults([]);
+      setBarikoiLoading(false);
+      return;
+    }
+
+    setBarikoiLoading(true);
+    barikoiTimerRef.current = setTimeout(async () => {
+      try {
+        const results = await searchPlaces(deferredQuery.trim());
+        setBarikoiResults(results);
+      } catch {
+        setBarikoiResults([]);
+      } finally {
+        setBarikoiLoading(false);
+      }
+    }, 400);
+
+    return () => {
+      if (barikoiTimerRef.current) clearTimeout(barikoiTimerRef.current);
+    };
+  }, [deferredQuery, filtered.length]);
+
+  // Convert Barikoi suggestions to StopItems for selection
+  const barikoiStops: (StopItem & { place_name: string; distance_km: number })[] =
+    barikoiResults.map((r) => ({
+      name_en: r.name_en,
+      name_bn: r.name_bn,
+      place_name: r.place_name,
+      distance_km: r.distance_km,
+    }));
+
   // ── Close on outside click ──────────────────────────────────────────────────
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -189,7 +232,10 @@ export function StopAutocomplete({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (!isOpen || filtered.length === 0) {
+    // Use Barikoi results when local results are empty
+    const activeList: StopItem[] = filtered.length > 0 ? filtered : barikoiStops;
+
+    if (!isOpen || activeList.length === 0) {
       if (e.key === "Escape") setIsOpen(false);
       return;
     }
@@ -198,24 +244,23 @@ export function StopAutocomplete({
       case "ArrowDown":
         e.preventDefault();
         setHighlightIndex((prev) =>
-          prev < filtered.length - 1 ? prev + 1 : 0,
+          prev < activeList.length - 1 ? prev + 1 : 0,
         );
         break;
 
       case "ArrowUp":
         e.preventDefault();
         setHighlightIndex((prev) =>
-          prev > 0 ? prev - 1 : filtered.length - 1,
+          prev > 0 ? prev - 1 : activeList.length - 1,
         );
         break;
 
       case "Enter":
         e.preventDefault();
         if (highlightIndex >= 0) {
-          handleSelect(filtered[highlightIndex]);
-        } else if (filtered.length === 1) {
-          // Auto-select when there is exactly one result
-          handleSelect(filtered[0]);
+          handleSelect(activeList[highlightIndex]);
+        } else if (activeList.length === 1) {
+          handleSelect(activeList[0]);
         }
         break;
 
@@ -335,8 +380,59 @@ export function StopAutocomplete({
         </div>
       )}
 
+      {/* ── Barikoi fallback results ──────────────────────────────────────────── */}
+      {isOpen && filtered.length === 0 && barikoiStops.length > 0 && (
+        <div
+          ref={listRef}
+          role="listbox"
+          aria-label={label}
+          className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-panel border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800"
+        >
+          <div className="border-b border-slate-100 px-3 py-1.5 dark:border-slate-700">
+            <span className="text-xs text-slate-400 dark:text-slate-500">
+              {lang === "bn" ? "কাছের স্টপ" : "Nearby stops"}
+            </span>
+          </div>
+          {barikoiStops.map((stop, i) => (
+            <button
+              key={`barikoi-${stop.name_en}-${i}`}
+              ref={(el) => {
+                itemRefs.current[i] = el;
+              }}
+              role="option"
+              aria-selected={i === highlightIndex}
+              onClick={() => handleSelect(stop)}
+              className={`flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm transition-colors ${
+                i === highlightIndex
+                  ? "bg-blue-50 text-primary dark:bg-blue-900/30"
+                  : "text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700"
+              }`}
+            >
+              <Navigation className="h-3.5 w-3.5 shrink-0 text-emerald-500 dark:text-emerald-400" />
+
+              <div className="flex flex-1 flex-col min-w-0">
+                <span className="truncate font-medium">{displayName(stop)}</span>
+                <span className="truncate text-xs text-slate-400 dark:text-slate-500">
+                  {stop.place_name}
+                  {stop.distance_km > 0 && ` · ${stop.distance_km} km`}
+                </span>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* ── Loading hint for Barikoi search ────────────────────────────────────── */}
+      {isOpen && filtered.length === 0 && barikoiLoading && (
+        <div className="absolute z-50 mt-1 w-full rounded-panel border border-slate-200 bg-white px-4 py-3 shadow-lg dark:border-slate-700 dark:bg-slate-800">
+          <p className="text-sm text-slate-400 dark:text-slate-500">
+            {lang === "bn" ? "খুঁজছে..." : "Searching nearby places..."}
+          </p>
+        </div>
+      )}
+
       {/* ── No results hint ───────────────────────────────────────────────────── */}
-      {isOpen && deferredQuery.trim().length >= 2 && filtered.length === 0 && (
+      {isOpen && deferredQuery.trim().length >= 2 && filtered.length === 0 && !barikoiLoading && barikoiStops.length === 0 && (
         <div className="absolute z-50 mt-1 w-full rounded-panel border border-slate-200 bg-white px-4 py-3 shadow-lg dark:border-slate-700 dark:bg-slate-800">
           <p className="text-sm text-slate-400 dark:text-slate-500">
             {lang === "bn"
