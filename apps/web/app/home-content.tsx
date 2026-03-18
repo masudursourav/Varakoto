@@ -11,6 +11,7 @@ import {
   type SearchHistoryItem,
 } from "@/lib/history";
 import { formatTimeAgo } from "@/lib/utils";
+import dynamic from "next/dynamic";
 import { StopAutocomplete } from "@/components/stop-autocomplete";
 import { BrtaRulesDialog } from "@/components/brta-rules-dialog";
 import { SearchCardSkeleton } from "@/components/skeletons";
@@ -24,6 +25,16 @@ import {
   Crosshair,
   X,
 } from "lucide-react";
+
+const RoutePreview = dynamic(
+  () => import("@/components/route-preview").then((m) => m.RoutePreview),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-32 animate-pulse rounded-panel bg-slate-100 dark:bg-slate-800" />
+    ),
+  },
+);
 
 const BRTA_HELPLINE = "16107";
 
@@ -234,6 +245,13 @@ export function HomeContent() {
                     icon="destination"
                   />
                 </div>
+
+                {/* Route Preview Map */}
+                {origin && destination && origin.name_en !== destination.name_en && (
+                  <div className="mt-4">
+                    <RoutePreview origin={origin} destination={destination} />
+                  </div>
+                )}
 
                 {/* Calculate Button */}
                 <button
