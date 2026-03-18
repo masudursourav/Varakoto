@@ -5,9 +5,9 @@
 //   - Navigation (HTML pages)             → network-first, cache fallback
 //   - Everything else                     → network-only (fare calc must be live)
 
-const SHELL_CACHE = "varakoto-shell-v2.4.0";
-const STOPS_CACHE = "varakoto-stops-v2.4.0";
-const STATIC_CACHE = "varakoto-static-v2.4.0";
+const SHELL_CACHE = "varakoto-shell-v$SW_VERSION";
+const STOPS_CACHE = "varakoto-stops-v$SW_VERSION";
+const STATIC_CACHE = "varakoto-static-v$SW_VERSION";
 
 const SHELL_URLS = ["/", "/history", "/settings"];
 

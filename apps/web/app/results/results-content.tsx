@@ -6,8 +6,8 @@ import { useLanguage } from "@/context/language-context";
 import { t } from "@/lib/i18n";
 import { calculateFare, type FareResult } from "@/lib/api";
 import { FareResultCard } from "@/components/fare-result-card";
+import { ResultsSkeleton } from "@/components/skeletons";
 import {
-  Loader2,
   SearchX,
   Phone,
   GraduationCap,
@@ -105,12 +105,7 @@ export function ResultsContent() {
         )}
 
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="mt-3 text-sm text-gray-500 dark:text-slate-400">
-              {t(lang, "searching")}
-            </p>
-          </div>
+          <ResultsSkeleton />
         ) : error ? (
           <div className="flex flex-col items-center justify-center py-20">
             <div className="rounded-full bg-red-50 p-3 dark:bg-red-900/30">
