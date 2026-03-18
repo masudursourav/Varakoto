@@ -13,6 +13,7 @@ import {
 import { formatTimeAgo } from "@/lib/utils";
 import { StopAutocomplete } from "@/components/stop-autocomplete";
 import { BrtaRulesDialog } from "@/components/brta-rules-dialog";
+import { SearchCardSkeleton } from "@/components/skeletons";
 import {
   ArrowUpDown,
   Loader2,
@@ -172,9 +173,7 @@ export function HomeContent() {
         <section className="mb-8 mt-6">
           <div className="relative rounded-container bg-white p-6 shadow-xl dark:bg-slate-900 dark:shadow-none">
             {loading ? (
-              <div className="flex items-center justify-center py-10">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              </div>
+              <SearchCardSkeleton />
             ) : error ? (
               <div className="py-8 text-center">
                 <p className="text-sm text-red-500">{error}</p>

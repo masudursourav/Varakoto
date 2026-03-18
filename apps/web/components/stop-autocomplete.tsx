@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useDeferredValue, useRef, useEffect, useCallback } from "react";
 import { useLanguage } from "@/context/language-context";
 import type { StopItem } from "@/lib/api";
 import { MapPin, X } from "lucide-react";
@@ -142,7 +142,8 @@ export function StopAutocomplete({
   const displayName = (stop: StopItem) =>
     lang === "bn" ? stop.name_bn : stop.name_en;
 
-  const filtered = filterStops(stops, query, lang);
+  const deferredQuery = useDeferredValue(query);
+  const filtered = filterStops(stops, deferredQuery, lang);
 
   // ── Close on outside click ──────────────────────────────────────────────────
   useEffect(() => {
@@ -335,7 +336,7 @@ export function StopAutocomplete({
       )}
 
       {/* ── No results hint ───────────────────────────────────────────────────── */}
-      {isOpen && query.trim().length >= 2 && filtered.length === 0 && (
+      {isOpen && deferredQuery.trim().length >= 2 && filtered.length === 0 && (
         <div className="absolute z-50 mt-1 w-full rounded-panel border border-slate-200 bg-white px-4 py-3 shadow-lg dark:border-slate-700 dark:bg-slate-800">
           <p className="text-sm text-slate-400 dark:text-slate-500">
             {lang === "bn"
