@@ -71,7 +71,10 @@ export function ResultsContent() {
             </button>
             <div className="flex flex-col">
               <span className="text-sm font-bold text-gray-800 dark:text-slate-100">
-                {origin} → {destination}
+                {origin}
+                <span aria-hidden="true" className="mx-1">→</span>
+                <span className="sr-only">{t(lang, "to")}</span>
+                {destination}
               </span>
               <span className="text-xs text-gray-500 dark:text-slate-400">
                 {t(lang, "verifyFare")}

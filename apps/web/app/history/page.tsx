@@ -8,6 +8,17 @@ import {
   type SearchHistoryItem,
 } from "@/lib/history";
 import { t } from "@/lib/i18n";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { ChevronRight, Clock, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -18,10 +29,12 @@ export default function HistoryPage() {
   const [history, setHistory] = useState<SearchHistoryItem[]>(() =>
     getHistory(),
   );
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const handleClear = () => {
     clearHistory();
     setHistory([]);
+    setConfirmOpen(false);
   };
 
   const handleClick = (item: SearchHistoryItem) => {
@@ -40,13 +53,37 @@ export default function HistoryPage() {
             {t(lang, "recentSearches")}
           </h1>
           {history.length > 0 && (
-            <button
-              onClick={handleClear}
-              className="flex items-center gap-1 text-sm font-medium text-red-500"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-              {t(lang, "clearAll")}
-            </button>
+            <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+              <DialogTrigger
+                render={
+                  <button className="flex items-center gap-1 text-sm font-medium text-red-500" />
+                }
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                {t(lang, "clearAll")}
+              </DialogTrigger>
+              <DialogContent showCloseButton={false} className="rounded-card dark:bg-slate-900">
+                <DialogHeader>
+                  <DialogTitle className="dark:text-slate-100">
+                    {t(lang, "clearHistoryTitle")}
+                  </DialogTitle>
+                  <DialogDescription>
+                    {t(lang, "clearHistoryDesc")}
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <DialogClose
+                    render={<Button variant="outline" />}
+                  >
+                    {t(lang, "cancel")}
+                  </DialogClose>
+                  <Button variant="destructive" onClick={handleClear}>
+                    <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                    {t(lang, "confirmClear")}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           )}
         </div>
 
@@ -73,9 +110,8 @@ export default function HistoryPage() {
                   <div className="text-left">
                     <p className="font-bold text-slate-700 dark:text-slate-200">
                       {lang === "bn" ? item.origin_bn : item.origin_en}
-                      <span className="mx-1 text-primary">
-                        →
-                      </span>
+                      <span aria-hidden="true" className="mx-1 text-primary">→</span>
+                      <span className="sr-only">{t(lang, "to")}</span>
                       {lang === "bn"
                         ? item.destination_bn
                         : item.destination_en}
