@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
-import { STOP_COORDS } from "../utils/geo.js";
+import { STOP_COORDS, isWithinDhaka } from "../utils/geo.js";
 import { normalizeText } from "../utils/normalizeText.js";
 import { resolveEnglishNames } from "../utils/stopAlias.js";
 import { sanitizeInput } from "../utils/normalizeText.js";
@@ -24,17 +24,19 @@ async function barikoiGeocode(
   if (cached !== undefined) return cached;
 
   try {
-    const url = `https://barikoi.xyz/v2/api/search/autocomplete/place?api_key=${env.BARIKOI_API_KEY}&q=${encodeURIComponent(stopName + " Dhaka")}&city=dhaka&bangla=true`;
+    const url = `https://barikoi.xyz/v2/api/search/autocomplete/place?api_key=${env.BARIKOI_API_KEY}&q=${encodeURIComponent(stopName + " Dhaka")}&city=dhaka&bangla=true&longitude=90.4125&latitude=23.8103&scale=0.5`;
     const res = await fetch(url);
     const data = await res.json();
 
     if (data.places && data.places.length > 0) {
-      const lat = parseFloat(data.places[0].latitude);
-      const lng = parseFloat(data.places[0].longitude);
-      if (!isNaN(lat) && !isNaN(lng)) {
-        const coords: [number, number] = [lat, lng];
-        geocodeCache.set(stopName, coords);
-        return coords;
+      for (const place of data.places) {
+        const lat = parseFloat(place.latitude);
+        const lng = parseFloat(place.longitude);
+        if (!isNaN(lat) && !isNaN(lng) && isWithinDhaka(lat, lng)) {
+          const coords: [number, number] = [lat, lng];
+          geocodeCache.set(stopName, coords);
+          return coords;
+        }
       }
     }
 
