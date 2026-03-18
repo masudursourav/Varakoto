@@ -66,14 +66,14 @@ export default function HistoryPage() {
               <button
                 key={i}
                 onClick={() => handleClick(item)}
-                className="flex w-full items-center justify-between rounded-2xl border border-slate-100 bg-white p-4 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800"
+                className="flex w-full items-center justify-between rounded-card border border-slate-100 bg-white p-4 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800"
               >
                 <div className="flex items-center gap-4">
                   <Clock className="h-5 w-5 text-slate-300 dark:text-slate-600" />
                   <div className="text-left">
                     <p className="font-bold text-slate-700 dark:text-slate-200">
                       {lang === "bn" ? item.origin_bn : item.origin_en}
-                      <span className="mx-1 text-[#1a4a8e] dark:text-blue-400">
+                      <span className="mx-1 text-primary">
                         →
                       </span>
                       {lang === "bn"

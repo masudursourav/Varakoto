@@ -91,7 +91,7 @@ function DetailsModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="details-modal-title"
-        className="w-full max-w-md rounded-t-3xl bg-white p-6 motion-safe:animate-in motion-safe:slide-in-from-bottom dark:bg-slate-900 sm:rounded-3xl"
+        className="w-full max-w-md rounded-t-container bg-white p-6 motion-safe:animate-in motion-safe:slide-in-from-bottom dark:bg-slate-900 sm:rounded-container"
       >
         {/* Handle bar */}
         <div className="mb-4 flex justify-center sm:hidden">
@@ -121,7 +121,7 @@ function DetailsModal({
 
         {/* Route Info */}
         <div className="space-y-4">
-          <div className="rounded-xl bg-gray-50 p-4 dark:bg-slate-800/60">
+          <div className="rounded-panel bg-gray-50 p-4 dark:bg-slate-800/60">
             <div className="mb-3 flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-slate-400">
               <Route className="h-3.5 w-3.5" />
               {t(lang, "routeLabel")}
@@ -132,7 +132,7 @@ function DetailsModal({
           </div>
 
           {/* Origin & Destination */}
-          <div className="rounded-xl bg-gray-50 p-4 dark:bg-slate-800/60">
+          <div className="rounded-panel bg-gray-50 p-4 dark:bg-slate-800/60">
             <div className="flex items-center gap-3">
               <div className="flex flex-col items-center gap-1">
                 <div className="h-3 w-3 rounded-full border-2 border-emerald-500 bg-emerald-100 dark:bg-emerald-900" />
@@ -162,7 +162,7 @@ function DetailsModal({
 
           {/* Distance & Fare */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-xl bg-gray-50 p-4 dark:bg-slate-800/60">
+            <div className="rounded-panel bg-gray-50 p-4 dark:bg-slate-800/60">
               <p className="mb-1 text-[10px] font-medium text-gray-400 dark:text-slate-500">
                 {t(lang, "distanceLabel")}
               </p>
@@ -173,7 +173,7 @@ function DetailsModal({
                 </span>
               </p>
             </div>
-            <div className="rounded-xl bg-blue-50 p-4 dark:bg-blue-900/30">
+            <div className="rounded-panel bg-blue-50 p-4 dark:bg-blue-900/30">
               <p className="mb-1 text-[10px] font-medium text-blue-500 dark:text-blue-400">
                 {t(lang, "fareLabel")}
               </p>
@@ -191,7 +191,7 @@ function DetailsModal({
 
           {/* Transfer Details in Modal */}
           {result.is_transfer && result.transfer && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20">
+            <div className="rounded-panel border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20">
               <p className="mb-2 text-xs font-semibold text-amber-700 dark:text-amber-400">
                 {t(lang, "transferAt")}{" "}
                 {lang === "bn"
@@ -227,7 +227,7 @@ function DetailsModal({
 
           {/* Elevated Expressway Note */}
           {result.may_use_elevated_expressway && (
-            <div className="rounded-xl border border-purple-200 bg-purple-50 p-4 dark:border-purple-800 dark:bg-purple-900/20">
+            <div className="rounded-panel border border-purple-200 bg-purple-50 p-4 dark:border-purple-800 dark:bg-purple-900/20">
               <div className="flex items-start gap-2">
                 <Zap className="mt-0.5 h-4 w-4 shrink-0 text-purple-600 dark:text-purple-400" />
                 <p className="text-xs leading-relaxed text-purple-700 dark:text-purple-300">
@@ -270,7 +270,7 @@ export function FareResultCard({
             setShowDetails(true);
           }
         }}
-        className="fare-card cursor-pointer overflow-hidden rounded-2xl border border-gray-100 bg-white transition-shadow active:shadow-md dark:border-slate-800 dark:bg-slate-900"
+        className="cursor-pointer overflow-hidden rounded-card border border-gray-100 bg-white shadow-md transition-shadow active:shadow-lg dark:border-slate-800 dark:bg-slate-900 dark:shadow-none"
       >
         <div className="flex items-start justify-between p-4">
           <div className="min-w-0 flex-1">
@@ -309,7 +309,7 @@ export function FareResultCard({
 
           {/* Fare Badge */}
           <div className="flex flex-col items-end text-right">
-            <div className="flex flex-col items-center rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 dark:border-blue-800 dark:bg-blue-900/30">
+            <div className="flex flex-col items-center rounded-panel border border-blue-100 bg-blue-50 px-4 py-3 dark:border-blue-800 dark:bg-blue-900/30">
               <span className="mb-1 text-2xl font-extrabold tracking-tight text-blue-800 dark:text-blue-300">
                 ৳ {displayFare}
               </span>

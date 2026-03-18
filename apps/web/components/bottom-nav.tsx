@@ -34,7 +34,7 @@ export function BottomNav() {
               href={href}
               className={`relative flex flex-col items-center gap-1 transition-colors duration-200 ${
                 isActive
-                  ? "text-[#1a4a8e] dark:text-blue-400"
+                  ? "text-primary"
                   : "text-slate-400 dark:text-slate-500"
               }`}
             >
@@ -42,7 +42,7 @@ export function BottomNav() {
                 <div
                   className={`absolute inset-0 -mx-3 -my-0.5 rounded-full transition-all duration-300 ease-in-out ${
                     isActive
-                      ? "scale-100 bg-[#1a4a8e]/10 opacity-100 dark:bg-blue-400/10"
+                      ? "scale-100 bg-primary/10 opacity-100"
                       : "scale-75 opacity-0"
                   }`}
                 />
