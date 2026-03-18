@@ -2,7 +2,7 @@ import type { Request, Response, NextFunction } from "express";
 import { BusRoute } from "../models/busRoute.model.js";
 import { normalizeText } from "../utils/normalizeText.js";
 import { env } from "../config/env.js";
-import { findNearestByCoords } from "../utils/geo.js";
+import { findNearestByCoords, isWithinDhaka } from "../utils/geo.js";
 
 /**
  * GET /api/v1/search/places?q=জাতীয় সংসদ
@@ -35,7 +35,7 @@ export async function searchPlaces(
     }
 
     // Call Barikoi Autocomplete API
-    const barikoiUrl = `https://barikoi.xyz/v2/api/search/autocomplete/place?api_key=${env.BARIKOI_API_KEY}&q=${encodeURIComponent(q)}&city=dhaka&bangla=true`;
+    const barikoiUrl = `https://barikoi.xyz/v2/api/search/autocomplete/place?api_key=${env.BARIKOI_API_KEY}&q=${encodeURIComponent(q)}&city=dhaka&bangla=true&longitude=90.4125&latitude=23.8103&scale=0.5`;
     const barikoiRes = await fetch(barikoiUrl);
     const barikoiData = await barikoiRes.json();
 
@@ -71,6 +71,9 @@ export async function searchPlaces(
       const lng = parseFloat(place.longitude);
 
       if (isNaN(lat) || isNaN(lng)) continue;
+
+      // Skip results outside the Dhaka metro area
+      if (!isWithinDhaka(lat, lng)) continue;
 
       const nearest = findNearestByCoords(lat, lng, 1);
       if (nearest.length === 0) continue;

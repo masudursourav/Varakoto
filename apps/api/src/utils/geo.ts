@@ -68,6 +68,27 @@ export const STOP_COORDS: Record<string, [number, number]> = {
   "sainik club": [23.7961, 90.4045],
 };
 
+/**
+ * Dhaka metropolitan bounding box.
+ * Covers the greater Dhaka area including Gazipur, Tongi, Savar, and Narayanganj.
+ */
+export const DHAKA_BOUNDS = {
+  minLat: 23.65,
+  maxLat: 24.02,
+  minLng: 90.30,
+  maxLng: 90.55,
+} as const;
+
+/** Returns true if the given coordinates fall within the Dhaka metro area. */
+export function isWithinDhaka(lat: number, lng: number): boolean {
+  return (
+    lat >= DHAKA_BOUNDS.minLat &&
+    lat <= DHAKA_BOUNDS.maxLat &&
+    lng >= DHAKA_BOUNDS.minLng &&
+    lng <= DHAKA_BOUNDS.maxLng
+  );
+}
+
 /** Haversine great-circle distance in km. */
 export function haversineKm(
   lat1: number,
