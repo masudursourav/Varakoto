@@ -164,6 +164,41 @@ export async function fetchStopCoords(
   }
 }
 
+export interface RouteToStop {
+  user: { lat: number; lng: number };
+  stop: {
+    name_en: string;
+    name_bn: string;
+    lat: number;
+    lng: number;
+    distance_km: number;
+  };
+  route: {
+    geometry: [number, number][];
+    duration_min: number | null;
+    distance_km: number | null;
+  } | null;
+}
+
+/**
+ * Fetch walking route from user's GPS position to the nearest bus stop.
+ */
+export async function fetchRouteToStop(
+  lat: number,
+  lng: number,
+): Promise<RouteToStop | null> {
+  try {
+    const res = await fetch(
+      `${API_BASE}/api/v1/route-to-stop?lat=${lat}&lng=${lng}`,
+    );
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function calculateFare(
   origin: string,
   destination: string,
