@@ -60,7 +60,7 @@ export function ResultsContent() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       {/* Sticky Header */}
-      <header className="sticky-header sticky top-14 z-40 border-b border-gray-200 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/90">
+      <header className="sticky top-14 z-40 border-b border-gray-200 bg-white/90 px-4 py-3 backdrop-blur dark:border-slate-800 dark:bg-slate-900/90">
         <div className="mx-auto flex max-w-md items-center justify-between">
           <div className="flex items-center space-x-2">
             <button
@@ -85,7 +85,7 @@ export function ResultsContent() {
       <main className="mx-auto max-w-md space-y-4 p-4">
         {/* Student Fare Toggle */}
         {!loading && !error && results.length > 0 && (
-          <div className="flex items-center justify-between rounded-xl border border-slate-100 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex items-center justify-between rounded-panel border border-slate-100 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
             <div className="flex items-center gap-2">
               <GraduationCap className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
               <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
@@ -106,7 +106,7 @@ export function ResultsContent() {
 
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-[#1a4a8e] dark:text-blue-400" />
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <p className="mt-3 text-sm text-gray-500 dark:text-slate-400">
               {t(lang, "searching")}
             </p>
@@ -155,7 +155,7 @@ export function ResultsContent() {
             ))}
 
             {/* Warning Note */}
-            <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-900/20">
+            <div className="rounded-panel border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-900/20">
               <p className="text-xs leading-relaxed text-yellow-800 dark:text-yellow-300">
                 <span className="font-bold">{t(lang, "warning")}</span>{" "}
                 {t(lang, "warningOvercharge")}

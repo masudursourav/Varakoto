@@ -18,7 +18,7 @@ export default function SettingsPage() {
           <h2 className="mb-3 px-1 text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
             {t(lang, "appearance")}
           </h2>
-          <div className="overflow-hidden rounded-xl border border-slate-100 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="overflow-hidden rounded-panel border border-slate-100 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <div className="flex items-center justify-between p-4">
               <div className="flex items-center gap-4">
                 <div className="rounded-lg bg-orange-100 p-2 text-orange-500 dark:bg-orange-900/30">
@@ -52,7 +52,7 @@ export default function SettingsPage() {
           <h2 className="mb-3 px-1 text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
             {t(lang, "contactDev")}
           </h2>
-          <div className="overflow-hidden rounded-xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="overflow-hidden rounded-panel border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <div className="mb-6 flex items-center gap-4">
               <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border-2 border-orange-100 bg-orange-100 text-orange-500 dark:border-orange-800 dark:bg-orange-900/30">
                 <span className="text-xl font-bold">ভ</span>
@@ -92,7 +92,7 @@ export default function SettingsPage() {
           <h2 className="mb-3 px-1 text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
             BRTA
           </h2>
-          <div className="overflow-hidden rounded-xl border border-slate-100 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="overflow-hidden rounded-panel border border-slate-100 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <a
               href="https://brta.gov.bd"
               target="_blank"
@@ -100,7 +100,7 @@ export default function SettingsPage() {
               className="flex items-center justify-between p-4 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800"
             >
               <div className="flex items-center gap-3">
-                <div className="rounded-lg bg-blue-50 p-2 text-[#1a4a8e] dark:bg-blue-900/30 dark:text-blue-400">
+                <div className="rounded-lg bg-blue-50 p-2 text-primary dark:bg-blue-900/30">
                   <span className="text-sm font-bold">B</span>
                 </div>
                 <span className="font-medium text-slate-900 dark:text-slate-100">

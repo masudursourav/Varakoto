@@ -7,13 +7,13 @@ export function Navbar() {
 
   return (
     <header
-      className="glass-header sticky top-0 z-50 flex items-center justify-between bg-white/80 px-4 py-3 backdrop-blur-md dark:bg-slate-900/80"
+      className="sticky top-0 z-50 flex items-center justify-between border-b border-white/20 bg-white/80 px-4 py-3 backdrop-blur-md dark:border-white/5 dark:bg-slate-900/80"
     >
       <div className="flex items-center gap-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1a4a8e]">
-          <span className="text-sm font-bold text-white">ভ</span>
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+          <span className="text-sm font-bold text-primary-foreground">ভ</span>
         </div>
-        <h1 className="text-xl font-bold tracking-tight text-[#1a4a8e] dark:text-blue-300">
+        <h1 className="text-xl font-bold tracking-tight text-primary">
           ভাড়া কত
         </h1>
       </div>
@@ -37,7 +37,7 @@ export function Navbar() {
           onClick={lang !== "bn" ? toggle : undefined}
           className={`relative z-10 rounded-full px-3 py-1 text-[11px] font-bold transition-colors duration-300 ${
             lang === "bn"
-              ? "text-[#1a4a8e] dark:text-white"
+              ? "text-primary dark:text-white"
               : "text-slate-500 dark:text-slate-400"
           }`}
         >
@@ -50,7 +50,7 @@ export function Navbar() {
           onClick={lang !== "en" ? toggle : undefined}
           className={`relative z-10 rounded-full px-3 py-1 text-[11px] font-bold transition-colors duration-300 ${
             lang === "en"
-              ? "text-[#1a4a8e] dark:text-white"
+              ? "text-primary dark:text-white"
               : "text-slate-500 dark:text-slate-400"
           }`}
         >

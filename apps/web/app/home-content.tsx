@@ -150,7 +150,7 @@ export function HomeContent() {
       {/* Toast notification */}
       {toast && (
         <div className="fixed left-1/2 top-16 z-[60] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 animate-in fade-in slide-in-from-top-2 duration-200">
-          <div className="flex items-center gap-3 rounded-2xl border border-red-100 bg-white px-4 py-3 shadow-lg dark:border-red-900 dark:bg-slate-900">
+          <div className="flex items-center gap-3 rounded-card border border-red-100 bg-white px-4 py-3 shadow-lg dark:border-red-900 dark:bg-slate-900">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-50 dark:bg-red-900/30">
               <MapPin className="h-4 w-4 text-red-500" />
             </div>
@@ -170,10 +170,10 @@ export function HomeContent() {
       <main className="px-4 pb-20">
         {/* Search Card */}
         <section className="mb-8 mt-6">
-          <div className="floating-card relative rounded-3xl bg-white p-6 dark:bg-slate-900">
+          <div className="relative rounded-container bg-white p-6 shadow-xl dark:bg-slate-900 dark:shadow-none">
             {loading ? (
               <div className="flex items-center justify-center py-10">
-                <Loader2 className="h-6 w-6 animate-spin text-[#1a4a8e] dark:text-blue-400" />
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
             ) : error ? (
               <div className="py-8 text-center">
@@ -201,7 +201,7 @@ export function HomeContent() {
                       <button
                         onClick={handleLocate}
                         disabled={locating}
-                        className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-blue-300 bg-blue-50/80 py-2.5 text-sm font-medium text-[#1a4a8e] transition-all hover:border-blue-400 hover:bg-blue-100 active:scale-[0.98] disabled:opacity-50 dark:border-blue-700 dark:bg-blue-900/20 dark:text-blue-300 dark:hover:bg-blue-900/40"
+                        className="mt-2 flex w-full items-center justify-center gap-2 rounded-panel border border-dashed border-blue-300 bg-blue-50/80 py-2.5 text-sm font-medium text-primary transition-all hover:border-blue-400 hover:bg-blue-100 active:scale-[0.98] disabled:opacity-50 dark:border-blue-700 dark:bg-blue-900/20 dark:hover:bg-blue-900/40"
                       >
                         {locating ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -219,7 +219,7 @@ export function HomeContent() {
                   <div className="flex justify-center">
                     <button
                       onClick={handleSwap}
-                      className="rounded-full bg-[#1a4a8e] p-2 text-white shadow-lg transition active:scale-90"
+                      className="rounded-full bg-primary p-2 text-primary-foreground shadow-lg transition active:scale-90"
                       aria-label={t(lang, "swap")}
                     >
                       <ArrowUpDown className="h-5 w-5" />
@@ -240,7 +240,7 @@ export function HomeContent() {
                 <button
                   onClick={handleSubmit}
                   disabled={!canSubmit}
-                  className="mt-6 w-full rounded-2xl bg-[#1a4a8e] py-4 font-bold text-white shadow-md transition active:opacity-90 disabled:opacity-50"
+                  className="mt-6 w-full rounded-card bg-primary py-4 font-bold text-primary-foreground shadow-md transition active:opacity-90 disabled:opacity-50"
                 >
                   {submitting ? (
                     <Loader2 className="mx-auto h-5 w-5 animate-spin" />
@@ -286,7 +286,7 @@ export function HomeContent() {
         <section className="mb-8 grid grid-cols-2 gap-4">
           <BrtaRulesDialog />
           <a href={`tel:${BRTA_HELPLINE}`} className="block">
-            <div className="flex flex-col items-center space-y-2 rounded-2xl border border-slate-100 bg-white p-4 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="flex flex-col items-center space-y-2 rounded-card border border-slate-100 bg-white p-4 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
               <div className="mb-1 flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 text-[#ff5252] dark:bg-red-900/30">
                 <Phone className="h-6 w-6" />
               </div>
@@ -306,7 +306,7 @@ export function HomeContent() {
               </h2>
               <button
                 onClick={() => router.push("/history")}
-                className="text-sm font-semibold text-[#1a4a8e] dark:text-blue-400"
+                className="text-sm font-semibold text-primary"
               >
                 {t(lang, "viewAll")}
               </button>
@@ -316,14 +316,14 @@ export function HomeContent() {
                 <button
                   key={i}
                   onClick={() => handleHistoryClick(item)}
-                  className="flex w-full items-center justify-between rounded-2xl border border-slate-100 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
+                  className="flex w-full items-center justify-between rounded-card border border-slate-100 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
                 >
                   <div className="flex items-center gap-4">
                     <Clock className="h-5 w-5 text-slate-300 dark:text-slate-600" />
                     <div className="text-left">
                       <p className="font-bold text-slate-700 dark:text-slate-200">
                         {lang === "bn" ? item.origin_bn : item.origin_en}
-                        <span className="mx-1 text-[#1a4a8e] dark:text-blue-400">
+                        <span className="mx-1 text-primary">
                           →
                         </span>
                         {lang === "bn"

@@ -252,7 +252,7 @@ export function StopAutocomplete({
           className={`mr-3 h-5 w-5 shrink-0 ${
             icon === "destination"
               ? "text-red-400 dark:text-red-500"
-              : "text-[#1a4a8e] dark:text-blue-400"
+              : "text-primary"
           }`}
         />
 
@@ -301,7 +301,7 @@ export function StopAutocomplete({
           ref={listRef}
           role="listbox"
           aria-label={label}
-          className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800"
+          className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-panel border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800"
         >
           {filtered.map((stop, i) => (
             <button
@@ -314,7 +314,7 @@ export function StopAutocomplete({
               onClick={() => handleSelect(stop)}
               className={`flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm transition-colors ${
                 i === highlightIndex
-                  ? "bg-blue-50 text-[#1a4a8e] dark:bg-blue-900/30 dark:text-blue-300"
+                  ? "bg-blue-50 text-primary dark:bg-blue-900/30"
                   : "text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700"
               }`}
             >
@@ -336,7 +336,7 @@ export function StopAutocomplete({
 
       {/* ── No results hint ───────────────────────────────────────────────────── */}
       {isOpen && query.trim().length >= 2 && filtered.length === 0 && (
-        <div className="absolute z-50 mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-lg dark:border-slate-700 dark:bg-slate-800">
+        <div className="absolute z-50 mt-1 w-full rounded-panel border border-slate-200 bg-white px-4 py-3 shadow-lg dark:border-slate-700 dark:bg-slate-800">
           <p className="text-sm text-slate-400 dark:text-slate-500">
             {lang === "bn"
               ? `"${query}" নামে কোনো স্থান পাওয়া যায়নি`

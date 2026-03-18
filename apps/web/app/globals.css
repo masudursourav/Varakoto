@@ -45,6 +45,14 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Semantic radius scale — use these for surface-level elements:
+     rounded-container : hero cards, modals, bottom sheets
+     rounded-card      : interactive cards, CTA buttons, dialogs
+     rounded-panel     : inner sections, dropdowns, info blocks */
+  --radius-container: calc(var(--radius) * 2.2);
+  --radius-card: calc(var(--radius) * 1.8);
+  --radius-panel: calc(var(--radius) * 1.4);
 }
 
 :root {
@@ -54,8 +62,8 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.417 0.124 257.945);
+  --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
@@ -89,8 +97,8 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
+  --primary: oklch(0.714 0.143 254.624);
+  --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
@@ -128,46 +136,3 @@
   }
 }
 
-/* Stitch design custom styles */
-.glass-header {
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.dark .glass-header {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.floating-card {
-  box-shadow:
-    0 10px 25px -5px rgba(0, 0, 0, 0.1),
-    0 8px 10px -6px rgba(0, 0, 0, 0.1);
-}
-
-.dark .floating-card {
-  box-shadow:
-    0 10px 25px -5px rgba(0, 0, 0, 0.4),
-    0 8px 10px -6px rgba(0, 0, 0, 0.3);
-}
-
-.sticky-header {
-  backdrop-filter: blur(8px);
-  background-color: rgba(255, 255, 255, 0.9);
-}
-
-.dark .sticky-header {
-  background-color: rgba(15, 23, 42, 0.9);
-}
-
-.fare-card {
-  box-shadow:
-    0 4px 6px -1px rgba(0, 0, 0, 0.1),
-    0 2px 4px -1px rgba(0, 0, 0, 0.06);
-}
-
-.dark .fare-card {
-  box-shadow:
-    0 4px 6px -1px rgba(0, 0, 0, 0.3),
-    0 2px 4px -1px rgba(0, 0, 0, 0.2);
-}
