@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useLanguage } from "@/context/language-context";
 import { t } from "@/lib/i18n";
 import { calcStudentFare } from "@/lib/utils";
@@ -32,11 +32,52 @@ function DetailsModal({
   onClose: () => void;
 }) {
   const { lang } = useLanguage();
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
   const studentFare =
     result.is_transfer && result.transfer
       ? calcStudentFare(result.transfer.leg1.fare) +
         calcStudentFare(result.transfer.leg2.fare)
       : calcStudentFare(result.fare);
+
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (e.key !== "Tab" || !dialogRef.current) return;
+
+      const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    },
+    [onClose],
+  );
+
+  useEffect(() => {
+    previousFocusRef.current = document.activeElement as HTMLElement;
+    document.addEventListener("keydown", handleKeyDown);
+    // Focus the close button on open
+    const closeBtn = dialogRef.current?.querySelector<HTMLElement>("button");
+    closeBtn?.focus();
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      previousFocusRef.current?.focus();
+    };
+  }, [handleKeyDown]);
 
   return (
     <div
@@ -45,7 +86,13 @@ function DetailsModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-md animate-in slide-in-from-bottom rounded-t-3xl bg-white p-6 dark:bg-slate-900 sm:rounded-3xl">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="details-modal-title"
+        className="w-full max-w-md rounded-t-3xl bg-white p-6 motion-safe:animate-in motion-safe:slide-in-from-bottom dark:bg-slate-900 sm:rounded-3xl"
+      >
         {/* Handle bar */}
         <div className="mb-4 flex justify-center sm:hidden">
           <div className="h-1 w-10 rounded-full bg-gray-300 dark:bg-slate-700" />
@@ -54,7 +101,10 @@ function DetailsModal({
         {/* Header */}
         <div className="mb-5 flex items-start justify-between">
           <div>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-slate-100">
+            <h3
+              id="details-modal-title"
+              className="text-lg font-bold text-gray-900 dark:text-slate-100"
+            >
               {t(lang, "busDetails")}
             </h3>
             <p className="mt-0.5 text-sm text-gray-500 dark:text-slate-400">
@@ -210,8 +260,16 @@ export function FareResultCard({
 
   return (
     <>
-      <section
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => setShowDetails(true)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setShowDetails(true);
+          }
+        }}
         className="fare-card cursor-pointer overflow-hidden rounded-2xl border border-gray-100 bg-white transition-shadow active:shadow-md dark:border-slate-800 dark:bg-slate-900"
       >
         <div className="flex items-start justify-between p-4">
@@ -252,10 +310,10 @@ export function FareResultCard({
           {/* Fare Badge */}
           <div className="flex flex-col items-end text-right">
             <div className="flex flex-col items-center rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 dark:border-blue-800 dark:bg-blue-900/30">
-              <span className="mb-1 text-xs font-bold tracking-tight text-blue-800 dark:text-blue-300">
+              <span className="mb-1 text-2xl font-extrabold tracking-tight text-blue-800 dark:text-blue-300">
                 ৳ {displayFare}
               </span>
-              <div className="rounded bg-blue-600 px-2 py-0.5 text-[8px] font-bold uppercase text-white">
+              <div className="rounded bg-blue-600 px-2 py-0.5 text-[10px] font-bold uppercase text-white">
                 {t(lang, "brtaApproved")}
               </div>
             </div>
@@ -328,7 +386,7 @@ export function FareResultCard({
             <ArrowRight className="ml-1 h-3 w-3" />
           </button>
         </div>
-      </section>
+      </div>
 
       {showDetails && (
         <DetailsModal
