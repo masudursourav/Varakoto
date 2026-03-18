@@ -4,7 +4,6 @@ import {
   createContext,
   useContext,
   useState,
-  useEffect,
   type ReactNode,
 } from "react";
 
@@ -20,15 +19,11 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("light");
-
-  useEffect(() => {
-    const stored = localStorage.getItem("varakoto-theme") as Theme | null;
-    if (stored === "dark" || stored === "light") {
-      setThemeState(stored);
-      document.documentElement.classList.toggle("dark", stored === "dark");
-    }
-  }, []);
+  const [theme, setThemeState] = useState<Theme>(() => {
+    if (typeof window === "undefined") return "light";
+    const stored = localStorage.getItem("varakoto-theme");
+    return stored === "dark" || stored === "light" ? stored : "light";
+  });
 
   const setTheme = (newTheme: Theme) => {
     setThemeState(newTheme);
