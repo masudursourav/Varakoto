@@ -11,11 +11,8 @@ const AIRPORT_REDUCTION_KM = 1.5; // Terminal offset: airport stop is set back f
 /** Maximum number of transfer suggestions to return when no direct route exists. */
 const MAX_TRANSFER_RESULTS = 3;
 
-// Elevated expressway corridor stops (Uttara–Farmgate via Kawla–Banani–Tejgaon)
+// Elevated expressway corridor stops (Kawla–Farmgate via Banani–Tejgaon)
 const ELEVATED_EXPRESSWAY_STOPS = [
-  "uttara",
-  "jasimuddin",
-  "jasimuddin road",
   "kawla",
   "khilkhet",
   "kuril",
