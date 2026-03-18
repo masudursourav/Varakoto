@@ -234,11 +234,20 @@ export function StopAutocomplete({
 
   return (
     <div ref={containerRef} className="relative">
-      <label className="ml-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+      <label
+        id={`${label}-label`}
+        className="ml-1 text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500"
+      >
         {label}
       </label>
 
-      <div className="flex items-center border-b-2 border-slate-100 py-2 dark:border-slate-700">
+      <div
+        role="combobox"
+        aria-expanded={isOpen && filtered.length > 0}
+        aria-haspopup="listbox"
+        aria-labelledby={`${label}-label`}
+        className="flex items-center border-b-2 border-slate-100 py-2 dark:border-slate-700"
+      >
         <MapPin
           className={`mr-3 h-5 w-5 shrink-0 ${
             icon === "destination"
