@@ -322,9 +322,8 @@ export function HomeContent() {
                     <div className="text-left">
                       <p className="font-bold text-slate-700 dark:text-slate-200">
                         {lang === "bn" ? item.origin_bn : item.origin_en}
-                        <span className="mx-1 text-primary">
-                          →
-                        </span>
+                        <span aria-hidden="true" className="mx-1 text-primary">→</span>
+                        <span className="sr-only">{t(lang, "to")}</span>
                         {lang === "bn"
                           ? item.destination_bn
                           : item.destination_en}
