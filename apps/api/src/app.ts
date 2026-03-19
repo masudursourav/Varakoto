@@ -10,6 +10,10 @@ import { env } from "./config/env.js";
 
 const app = express();
 
+// Trust the first proxy (Render, Railway, etc.) so express-rate-limit
+// reads the real client IP from X-Forwarded-For.
+app.set("trust proxy", 1);
+
 // ─── Security ────────────────────────────────────────────────────────────────
 
 app.use(
