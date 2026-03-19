@@ -57,8 +57,27 @@ const fareLimiter = rateLimit({
   },
 });
 
+/**
+ * Barikoi limiter — endpoints that proxy the Barikoi API are capped at
+ * 15 req/min per IP to avoid burning through the upstream quota.
+ */
+const barikoiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 15,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Too many location requests. Please wait a moment and try again.",
+  },
+});
+
 app.use("/api/v1", generalLimiter);
 app.use("/api/v1/fare/calculate", fareLimiter);
+app.use("/api/v1/nearest-stop", barikoiLimiter);
+app.use("/api/v1/route-to-stop", barikoiLimiter);
+app.use("/api/v1/search/places", barikoiLimiter);
+app.use("/api/v1/route-map", barikoiLimiter);
 
 // ─── Health ──────────────────────────────────────────────────────────────────
 

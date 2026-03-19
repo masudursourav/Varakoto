@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useLanguage } from "@/context/language-context";
-import { fetchStopCoords, type StopCoords, type StopItem } from "@/lib/api";
+import { fetchRouteMap, type RouteMapData, type StopItem } from "@/lib/api";
 import { MapPin, Plus, Minus } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -12,21 +12,17 @@ interface RoutePreviewProps {
   destination: StopItem;
 }
 
-/**
- * Fetches stop coordinates and manages loading/loaded state.
- * Avoids calling setState synchronously inside useEffect.
- */
-function useStopCoords(originEn: string, destEn: string) {
+function useRouteMap(originEn: string, destEn: string) {
   const [result, setResult] = useState<{
     key: string;
-    data: StopCoords | null;
+    data: RouteMapData | null;
   } | null>(null);
 
   const currentKey = `${originEn}|${destEn}`;
 
   useEffect(() => {
     let cancelled = false;
-    fetchStopCoords(originEn, destEn).then((data) => {
+    fetchRouteMap(originEn, destEn).then((data) => {
       if (!cancelled) setResult({ key: currentKey, data });
     });
     return () => {
@@ -35,9 +31,9 @@ function useStopCoords(originEn: string, destEn: string) {
   }, [originEn, destEn, currentKey]);
 
   const loading = !result || result.key !== currentKey;
-  const coords = loading ? null : result.data;
+  const data = loading ? null : result.data;
 
-  return { loading, coords };
+  return { loading, data };
 }
 
 export function RoutePreview({ origin, destination }: RoutePreviewProps) {
@@ -45,14 +41,11 @@ export function RoutePreview({ origin, destination }: RoutePreviewProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
 
-  const { loading, coords } = useStopCoords(
-    origin.name_en,
-    destination.name_en,
-  );
+  const { loading, data } = useRouteMap(origin.name_en, destination.name_en);
 
-  // Render map when coordinates are available
+  // Render map when data is available
   useEffect(() => {
-    if (!coords || !mapRef.current) return;
+    if (!data || !mapRef.current) return;
 
     // Clean up previous map
     if (mapInstanceRef.current) {
@@ -60,8 +53,15 @@ export function RoutePreview({ origin, destination }: RoutePreviewProps) {
       mapInstanceRef.current = null;
     }
 
-    const { origin: o, destination: d } = coords;
+    const { origin: o, destination: d, segments } = data;
     const bounds = L.latLngBounds([o.lat, o.lng], [d.lat, d.lng]);
+
+    // Extend bounds to include route geometry
+    for (const seg of segments) {
+      for (const [lng, lat] of seg.geometry) {
+        bounds.extend([lat, lng]);
+      }
+    }
 
     const map = L.map(mapRef.current, {
       zoomControl: false,
@@ -99,19 +99,18 @@ export function RoutePreview({ origin, destination }: RoutePreviewProps) {
     L.marker([o.lat, o.lng], { icon: originIcon }).addTo(map);
     L.marker([d.lat, d.lng], { icon: destIcon }).addTo(map);
 
-    // Dashed corridor line
-    L.polyline(
-      [
-        [o.lat, o.lng],
-        [d.lat, d.lng],
-      ],
-      {
+    // Draw real route geometry if available
+    for (const seg of segments) {
+      // Backend returns [lng, lat] — Leaflet needs [lat, lng]
+      const latLngs: L.LatLngExpression[] = seg.geometry.map(
+        ([lng, lat]) => [lat, lng] as [number, number],
+      );
+      L.polyline(latLngs, {
         color: "#1a4a8e",
-        weight: 2,
-        dashArray: "6, 8",
-        opacity: 0.6,
-      },
-    ).addTo(map);
+        weight: 3,
+        opacity: 0.7,
+      }).addTo(map);
+    }
 
     mapInstanceRef.current = map;
 
@@ -119,7 +118,7 @@ export function RoutePreview({ origin, destination }: RoutePreviewProps) {
       map.remove();
       mapInstanceRef.current = null;
     };
-  }, [coords]);
+  }, [data]);
 
   if (loading) {
     return (
@@ -127,7 +126,7 @@ export function RoutePreview({ origin, destination }: RoutePreviewProps) {
     );
   }
 
-  if (!coords) return null;
+  if (!data) return null;
 
   const originName = lang === "bn" ? origin.name_bn : origin.name_en;
   const destName = lang === "bn" ? destination.name_bn : destination.name_en;
@@ -156,6 +155,14 @@ export function RoutePreview({ origin, destination }: RoutePreviewProps) {
             <Minus className="h-4 w-4 text-slate-700 dark:text-slate-300" />
           </button>
         </div>
+        <a
+          href="https://www.openstreetmap.org/copyright"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="map-attribution"
+        >
+          © OpenStreetMap
+        </a>
       </div>
       <div className="flex items-center justify-between bg-white px-3 py-2 dark:bg-slate-900">
         <div className="flex items-center gap-1.5 text-xs">

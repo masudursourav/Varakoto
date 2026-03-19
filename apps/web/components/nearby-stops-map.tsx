@@ -261,6 +261,14 @@ export function NearbyStopsMap({
             <Minus className="h-4 w-4 text-slate-700 dark:text-slate-300" />
           </button>
         </div>
+        <a
+          href="https://www.openstreetmap.org/copyright"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="map-attribution"
+        >
+          © OpenStreetMap
+        </a>
       </div>
 
       {/* Bottom stop list */}

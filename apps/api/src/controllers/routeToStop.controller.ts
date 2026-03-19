@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
-import { BusRoute } from "../models/busRoute.model.js";
 import { normalizeText } from "../utils/normalizeText.js";
 import { findNearestByCoords, STOP_COORDS } from "../utils/geo.js";
+import { getStopMap } from "../utils/stopMap.js";
 import { env } from "../config/env.js";
 
 /**
@@ -41,18 +41,10 @@ export async function getRouteToStop(
       return;
     }
 
-    // Look up Bengali name from DB
-    const routes = await BusRoute.find({}, { stops: 1 }).lean();
-    let stopNameBn = stopName;
-    for (const route of routes) {
-      const match = route.stops.find(
-        (s) => normalizeText(s.name_en) === normalizeText(stopName),
-      );
-      if (match) {
-        stopNameBn = match.name_bn;
-        break;
-      }
-    }
+    // Look up Bengali name from cached stop map
+    const stopMap = await getStopMap();
+    const dbStop = stopMap.get(normalizeText(stopName));
+    const stopNameBn = dbStop?.name_bn ?? stopName;
 
     const [stopLat, stopLng] = stopCoords;
 
@@ -63,7 +55,7 @@ export async function getRouteToStop(
 
     if (env.BARIKOI_API_KEY) {
       try {
-        const url = `https://barikoi.xyz/v2/api/route/${lng},${lat};${stopLng},${stopLat}?api_key=${env.BARIKOI_API_KEY}&overview=full&geometries=geojson`;
+        const url = `https://barikoi.xyz/v2/api/route/foot/${lng},${lat};${stopLng},${stopLat}?api_key=${env.BARIKOI_API_KEY}&overview=full&geometries=geojson`;
         const routeRes = await fetch(url);
         const routeData = await routeRes.json();
 

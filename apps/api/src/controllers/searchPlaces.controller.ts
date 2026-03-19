@@ -1,8 +1,8 @@
 import type { Request, Response, NextFunction } from "express";
-import { BusRoute } from "../models/busRoute.model.js";
 import { normalizeText } from "../utils/normalizeText.js";
 import { env } from "../config/env.js";
 import { findNearestByCoords, isWithinDhaka } from "../utils/geo.js";
+import { getStopMap } from "../utils/stopMap.js";
 
 /**
  * GET /api/v1/search/places?q=জাতীয় সংসদ
@@ -44,18 +44,7 @@ export async function searchPlaces(
       return;
     }
 
-    // Load all stops from DB to resolve Bengali names
-    const routes = await BusRoute.find({}, { stops: 1 }).lean();
-    const stopMap = new Map<string, { name_en: string; name_bn: string }>();
-
-    for (const route of routes) {
-      for (const stop of route.stops) {
-        const key = normalizeText(stop.name_en);
-        if (!stopMap.has(key)) {
-          stopMap.set(key, { name_en: stop.name_en, name_bn: stop.name_bn });
-        }
-      }
-    }
+    const stopMap = await getStopMap();
 
     // Map each Barikoi result to the nearest known bus stop
     const seen = new Set<string>();

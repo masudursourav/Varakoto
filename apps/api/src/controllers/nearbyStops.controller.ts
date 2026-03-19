@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
-import { BusRoute } from "../models/busRoute.model.js";
 import { normalizeText } from "../utils/normalizeText.js";
 import { findNearbyWithCoords } from "../utils/geo.js";
+import { getStopMap } from "../utils/stopMap.js";
 
 /** Default search radius in km. */
 const DEFAULT_RADIUS_KM = 5;
@@ -31,19 +31,7 @@ export async function getNearbyStops(
     }
 
     const nearby = findNearbyWithCoords(lat, lng, DEFAULT_RADIUS_KM, MAX_RESULTS);
-
-    // Resolve Bengali names from DB
-    const routes = await BusRoute.find({}, { stops: 1 }).lean();
-    const stopMap = new Map<string, { name_en: string; name_bn: string }>();
-
-    for (const route of routes) {
-      for (const stop of route.stops) {
-        const key = normalizeText(stop.name_en);
-        if (!stopMap.has(key)) {
-          stopMap.set(key, { name_en: stop.name_en, name_bn: stop.name_bn });
-        }
-      }
-    }
+    const stopMap = await getStopMap();
 
     const data = nearby
       .map((s) => {

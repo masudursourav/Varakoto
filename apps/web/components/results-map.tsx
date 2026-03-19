@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useLanguage } from "@/context/language-context";
 import { t } from "@/lib/i18n";
 import { fetchRouteMap, type RouteMapData } from "@/lib/api";
@@ -8,6 +8,13 @@ import { Plus, Minus, Loader2 } from "lucide-react";
 import { Map as BkoiMap, Marker, LngLatBounds } from "bkoi-gl";
 
 const BARIKOI_KEY = process.env.NEXT_PUBLIC_BARIKOI_API_KEY || "";
+
+const LIGHT_STYLE = `https://map.barikoi.com/styles/barikoi-light/style.json?key=${BARIKOI_KEY}`;
+const DARK_STYLE = `https://map.barikoi.com/styles/barikoi-dark/style.json?key=${BARIKOI_KEY}`;
+
+function isDarkMode(): boolean {
+  return document.documentElement.classList.contains("dark");
+}
 
 interface ResultsMapProps {
   origin: string;
@@ -38,64 +45,15 @@ export function ResultsMap({
     };
   }, [origin, destination, transferStop]);
 
-  // Render map when data is available
-  useEffect(() => {
-    if (data === undefined || data === null || !mapContainerRef.current) return;
+  /**
+   * Add route line sources/layers to the map.
+   * Called after map "load" and after every style swap (which clears sources).
+   */
+  const addRouteLayers = useCallback(
+    (map: InstanceType<typeof BkoiMap>, mapData: RouteMapData) => {
+      const { origin: o, destination: d, transfer: tr, segments } = mapData;
 
-    // Clean up previous map
-    markersRef.current.forEach((m) => m.remove());
-    markersRef.current = [];
-    if (mapRef.current) {
-      mapRef.current.remove();
-      mapRef.current = null;
-    }
-
-    const { origin: o, destination: d, transfer: tr, segments } = data;
-
-    // Compute bounds
-    const bounds = new LngLatBounds([o.lng, o.lat], [d.lng, d.lat]);
-    if (tr) bounds.extend([tr.lng, tr.lat]);
-    segments.forEach((seg) => {
-      seg.geometry.forEach(([lng, lat]) => bounds.extend([lng, lat]));
-    });
-
-    const map = new BkoiMap({
-      container: mapContainerRef.current,
-      accessToken: BARIKOI_KEY,
-      bounds: bounds,
-      fitBoundsOptions: { padding: 50 },
-      attributionControl: false,
-    });
-
-    mapRef.current = map;
-
-    // Origin marker (green)
-    const originEl = createMarkerEl("#22c55e", "white");
-    const originMarker = new Marker({ element: originEl })
-      .setLngLat([o.lng, o.lat])
-      .addTo(map);
-    markersRef.current.push(originMarker);
-
-    // Destination marker (red)
-    const destEl = createMarkerEl("#ef4444", "white");
-    const destMarker = new Marker({ element: destEl })
-      .setLngLat([d.lng, d.lat])
-      .addTo(map);
-    markersRef.current.push(destMarker);
-
-    // Transfer marker (yellow/amber)
-    if (tr) {
-      const transferEl = createMarkerEl("#f59e0b", "white");
-      const transferMarker = new Marker({ element: transferEl })
-        .setLngLat([tr.lng, tr.lat])
-        .addTo(map);
-      markersRef.current.push(transferMarker);
-    }
-
-    // Draw route lines after map loads
-    map.on("load", () => {
       if (segments.length === 0) {
-        // No route geometry — draw dashed straight line as fallback
         const fallbackCoords: [number, number][] = tr
           ? [
               [o.lng, o.lat],
@@ -129,7 +87,6 @@ export function ResultsMap({
         return;
       }
 
-      // Draw actual route segments
       segments.forEach((seg, i) => {
         const sourceId = `route-segment-${i}`;
         map.addSource(sourceId, {
@@ -155,15 +112,96 @@ export function ResultsMap({
           },
         });
       });
+    },
+    [],
+  );
+
+  // Render map when data is available
+  useEffect(() => {
+    if (data === undefined || data === null || !mapContainerRef.current) return;
+
+    // Clean up previous map
+    markersRef.current.forEach((m) => m.remove());
+    markersRef.current = [];
+    if (mapRef.current) {
+      mapRef.current.remove();
+      mapRef.current = null;
+    }
+
+    const { origin: o, destination: d, transfer: tr } = data;
+
+    // Compute bounds
+    const bounds = new LngLatBounds([o.lng, o.lat], [d.lng, d.lat]);
+    if (tr) bounds.extend([tr.lng, tr.lat]);
+    data.segments.forEach((seg) => {
+      seg.geometry.forEach(([lng, lat]) => bounds.extend([lng, lat]));
+    });
+
+    const map = new BkoiMap({
+      container: mapContainerRef.current,
+      style: isDarkMode() ? DARK_STYLE : LIGHT_STYLE,
+      bounds: bounds,
+      fitBoundsOptions: { padding: 50 },
+      attributionControl: false,
+    });
+
+    mapRef.current = map;
+
+    // Origin marker (green)
+    const originEl = createMarkerEl("#22c55e", "white");
+    const originMarker = new Marker({ element: originEl })
+      .setLngLat([o.lng, o.lat])
+      .addTo(map);
+    markersRef.current.push(originMarker);
+
+    // Destination marker (red)
+    const destEl = createMarkerEl("#ef4444", "white");
+    const destMarker = new Marker({ element: destEl })
+      .setLngLat([d.lng, d.lat])
+      .addTo(map);
+    markersRef.current.push(destMarker);
+
+    // Transfer marker (yellow/amber)
+    if (tr) {
+      const transferEl = createMarkerEl("#f59e0b", "white");
+      const transferMarker = new Marker({ element: transferEl })
+        .setLngLat([tr.lng, tr.lat])
+        .addTo(map);
+      markersRef.current.push(transferMarker);
+    }
+
+    // Draw route lines after map loads
+    map.on("load", () => {
+      addRouteLayers(map, data);
+    });
+
+    // Watch for dark/light mode changes on <html>
+    const observer = new MutationObserver(() => {
+      const newStyle = isDarkMode() ? DARK_STYLE : LIGHT_STYLE;
+      map.setStyle(newStyle);
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+
+    // Re-add route layers after every style swap (setStyle clears all sources)
+    map.on("styledata", () => {
+      // Only re-add if sources are missing (style was swapped)
+      if (!map.getSource("route-segment-0") && !map.getSource("route-fallback")) {
+        addRouteLayers(map, data);
+      }
     });
 
     return () => {
+      observer.disconnect();
       markersRef.current.forEach((m) => m.remove());
       markersRef.current = [];
       map.remove();
       mapRef.current = null;
     };
-  }, [data]);
+  }, [data, addRouteLayers]);
 
   const handleZoomIn = () => mapRef.current?.zoomIn();
   const handleZoomOut = () => mapRef.current?.zoomOut();
@@ -205,6 +243,14 @@ export function ResultsMap({
             <Minus className="h-4 w-4 text-slate-700 dark:text-slate-300" />
           </button>
         </div>
+        <a
+          href="https://www.openstreetmap.org/copyright"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="map-attribution"
+        >
+          © OpenStreetMap | Barikoi
+        </a>
       </div>
 
       {/* Legend */}

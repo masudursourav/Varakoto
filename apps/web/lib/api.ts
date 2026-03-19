@@ -102,7 +102,7 @@ export function invalidateStopsCache(): void {
 export interface NearestStopItem {
   name_en: string;
   name_bn: string;
-  distance_km: number;
+  distance_km: number | null;
 }
 
 /**

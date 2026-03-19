@@ -1,8 +1,8 @@
 import type { Request, Response, NextFunction } from "express";
-import { BusRoute } from "../models/busRoute.model.js";
 import { normalizeText } from "../utils/normalizeText.js";
 import { env } from "../config/env.js";
 import { findNearestByCoords } from "../utils/geo.js";
+import { getStopMap } from "../utils/stopMap.js";
 
 /**
  * Try Barikoi reverse geocoding to get area name, then match to stops.
@@ -56,21 +56,10 @@ export async function getNearestStop(
     // Strategy 2: Try Barikoi reverse geocoding for area name matching
     const areaName = await barikoiReverse(lat, lng);
 
-    // Load all stops from DB to match
-    const routes = await BusRoute.find({}, { stops: 1 }).lean();
-    const stopMap = new Map<string, { name_en: string; name_bn: string }>();
-
-    for (const route of routes) {
-      for (const stop of route.stops) {
-        const key = normalizeText(stop.name_en);
-        if (!stopMap.has(key)) {
-          stopMap.set(key, { name_en: stop.name_en, name_bn: stop.name_bn });
-        }
-      }
-    }
+    const stopMap = await getStopMap();
 
     // Build final suggestions
-    const suggestions: { name_en: string; name_bn: string; distance_km: number }[] = [];
+    const suggestions: { name_en: string; name_bn: string; distance_km: number | null }[] = [];
     const seen = new Set<string>();
 
     // Add coordinate-based matches
@@ -96,7 +85,7 @@ export async function getNearestStop(
           suggestions.push({
             name_en: stop.name_en,
             name_bn: stop.name_bn,
-            distance_km: -1, // unknown exact distance
+            distance_km: null, // unknown exact distance
           });
         }
       }
