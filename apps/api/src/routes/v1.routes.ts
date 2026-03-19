@@ -6,6 +6,7 @@ import { searchPlaces } from "../controllers/searchPlaces.controller.js";
 import { getStopCoords } from "../controllers/stopCoords.controller.js";
 import { getRouteToStop } from "../controllers/routeToStop.controller.js";
 import { getNearbyStops } from "../controllers/nearbyStops.controller.js";
+import { getRouteMap } from "../controllers/routeMap.controller.js";
 import {
   validateBody,
   FareRequestSchema,
@@ -20,5 +21,6 @@ router.get("/search/places", searchPlaces);
 router.get("/stop-coords", getStopCoords);
 router.get("/route-to-stop", getRouteToStop);
 router.get("/nearby-stops", getNearbyStops);
+router.get("/route-map", getRouteMap);
 
 export default router;
