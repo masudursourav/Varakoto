@@ -3,7 +3,7 @@
 import { useLanguage } from "@/context/language-context";
 import { useTheme } from "@/context/theme-context";
 import { t } from "@/lib/i18n";
-import { Moon, Mail, Bug, ChevronRight } from "lucide-react";
+import { Moon, Mail, Bug, MessageSquare, ChevronRight } from "lucide-react";
 import pkg from "../../package.json";
 
 export default function SettingsPage() {
@@ -84,6 +84,15 @@ export default function SettingsPage() {
                 {t(lang, "reportBug")}
               </a>
             </div>
+            <a
+              href="https://docs.google.com/forms/d/e/1FAIpQLSe9IUGCoeZxHfE7WqiNYvsUETcScwJlbEgQ02W27Z8VIlOq_w/viewform?usp=dialog"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 font-medium text-white transition-colors hover:bg-primary/90"
+            >
+              <MessageSquare className="h-4 w-4" />
+              {t(lang, "writeFeedback")}
+            </a>
           </div>
         </section>
 
