@@ -1,22 +1,26 @@
 /**
- * Distance Consensus — Google-verified distances with shortest-path fallback.
+ * Distance Consensus — multi-source distance resolution.
  *
  * Priority order:
  * 1. Precomputed Google direct distance (from .direct-distance-cache.json)
  *    → Most accurate, covers all pairs within 30 km
  * 2. Dijkstra shortest path through Google-verified edges (O((V+E) log V) binary heap)
  *    → Fallback for uncached pairs, applies 0.90 correction factor
- * 3. DB minimum km difference
+ * 3. Barikoi driving distance (real road routing via Barikoi API)
+ *    → Uses stop coordinates + Barikoi Routing API, cached in-memory
+ * 4. DB minimum km difference
  *    → Last resort fallback
  *
  * Final result: minimum of all available sources, ensuring fare is
- * never higher than the Google Maps distance.
+ * never higher than any verified source.
  */
 
 import fs from "fs";
 import path from "path";
 import { BusRoute } from "../models/busRoute.model.js";
 import { normalizeText } from "./normalizeText.js";
+import { STOP_COORDS, barikoiGeocode } from "./geo.js";
+import { env } from "../config/env.js";
 
 // ─── Cache file paths ─────────────────────────────────────────────────────────
 
@@ -31,26 +35,6 @@ const DIJKSTRA_FACTOR = 0.9;
 /** How long (ms) to keep the DB-derived distance map before rebuilding. */
 const DB_MIN_MAP_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
-// ─── Manual overrides (always wins, regardless of any cached source) ──────────
-
-function overrideKey(a: string, b: string): string {
-  return [a.toLowerCase().trim(), b.toLowerCase().trim()].sort().join("||");
-}
-
-const MANUAL_OVERRIDES: Record<string, number> = {
-  [overrideKey("azampur", "mirpur 11")]: 11.6,
-  [overrideKey("azampur", "mirpur-11")]: 11.6,
-  [overrideKey("azampur", "mirpur 10")]: 10.5,
-  [overrideKey("azampur", "mirpur-10")]: 10.5,
-  [overrideKey("azampur", "mohakhali")]: 8.5,
-  [overrideKey("azampur", "farmgate")]: 14.0,
-  [overrideKey("azampur", "tongi")]: 7.0,
-  [overrideKey("azampur", "rajlakshmi")]: 5.5,
-  [overrideKey("azampur", "house building")]: 12.0,
-  [overrideKey("tongi bazar", "banani")]: 12.6,
-  [overrideKey("tongi", "banani")]: 12.6,
-};
-
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Graph = Map<string, Map<string, number>>;
@@ -64,6 +48,9 @@ let dbMinMap: Map<string, number> | null = null;
 let dbMinMapBuiltAt: number | null = null;
 
 let directCache: Record<string, number | null> | null = null;
+
+/** In-memory cache for Barikoi routing distances. */
+const barikoiDistCache = new Map<string, number | null>();
 
 // ─── Pair key ────────────────────────────────────────────────────────────────
 
@@ -260,6 +247,61 @@ async function buildDbMinMap(): Promise<Map<string, number>> {
   return result;
 }
 
+// ─── Barikoi Routing Distance ─────────────────────────────────────────────────
+
+/**
+ * Resolve GPS coordinates for a stop name.
+ * Checks hardcoded STOP_COORDS first, then falls back to Barikoi geocoding.
+ */
+async function resolveCoords(stopName: string): Promise<[number, number] | null> {
+  const norm = normalizeText(stopName);
+  if (STOP_COORDS[norm]) return STOP_COORDS[norm];
+  return barikoiGeocode(stopName);
+}
+
+/**
+ * Fetch driving distance (km) between two stops via the Barikoi Routing API.
+ * Results are cached in-memory. Returns null if unavailable.
+ */
+async function getBarikoiRoutingDistance(
+  stop1En: string,
+  stop2En: string,
+): Promise<number | null> {
+  if (!env.BARIKOI_API_KEY) return null;
+
+  const key = pairKey(stop1En, stop2En);
+
+  const cached = barikoiDistCache.get(key);
+  if (cached !== undefined) return cached;
+
+  const [coords1, coords2] = await Promise.all([
+    resolveCoords(stop1En),
+    resolveCoords(stop2En),
+  ]);
+
+  if (!coords1 || !coords2) {
+    barikoiDistCache.set(key, null);
+    return null;
+  }
+
+  try {
+    const url = `https://barikoi.xyz/v2/api/route/${coords1[1]},${coords1[0]};${coords2[1]},${coords2[0]}?api_key=${env.BARIKOI_API_KEY}`;
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (data.routes && data.routes.length > 0) {
+      const distKm = Math.round((data.routes[0].distance / 1000) * 10) / 10;
+      barikoiDistCache.set(key, distKm);
+      return distKm;
+    }
+
+    barikoiDistCache.set(key, null);
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 // ─── Ensure caches are ready ──────────────────────────────────────────────────
 
 async function ensureReady(): Promise<void> {
@@ -306,11 +348,6 @@ export async function getConsensusDistance(
 
   const key = pairKey(stop1En, stop2En);
 
-  // Source 0: Manual override (highest priority, always wins)
-  if (key in MANUAL_OVERRIDES) {
-    return MANUAL_OVERRIDES[key];
-  }
-
   // Source 1: Precomputed Google direct distance (most accurate)
   const googleDirect = directCache![key];
 
@@ -335,7 +372,10 @@ export async function getConsensusDistance(
   // Normalise the sentinel value used to cache "no path found"
   if (dijkstraDist === -1) dijkstraDist = null;
 
-  // Source 3: DB minimum km difference
+  // Source 3: Barikoi driving distance (real road distance via routing API)
+  const barikoiDist = await getBarikoiRoutingDistance(stop1En, stop2En);
+
+  // Source 4: DB minimum km difference
   const dbDist = dbMinMap!.get(key) ?? null;
 
   // Collect all valid candidates and pick the smallest
@@ -344,6 +384,7 @@ export async function getConsensusDistance(
     candidates.push(googleDirect);
   }
   if (dijkstraDist !== null) candidates.push(dijkstraDist);
+  if (barikoiDist !== null) candidates.push(barikoiDist);
   if (dbDist !== null) candidates.push(dbDist);
 
   if (candidates.length === 0) return null;
@@ -362,4 +403,5 @@ export function invalidateConsensusMap(): void {
   dbMinMap = null;
   dbMinMapBuiltAt = null;
   directCache = null;
+  barikoiDistCache.clear();
 }

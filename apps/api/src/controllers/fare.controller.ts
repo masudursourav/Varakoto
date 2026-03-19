@@ -4,9 +4,7 @@ import { resolveEnglishNames } from "../utils/stopAlias.js";
 import { getConsensusDistance } from "../utils/distanceConsensus.js";
 import { sanitizeInput, normalizeText } from "../utils/normalizeText.js";
 
-const RATE_PER_KM = 2.41;
-const FARE_DISCOUNT = 0.95; // 5% operational discount applied to all fares
-const AIRPORT_REDUCTION_KM = 1.5; // Terminal offset: airport stop is set back from the main road
+const RATE_PER_KM = 2.42;
 
 /** Maximum number of transfer suggestions to return when no direct route exists. */
 const MAX_TRANSFER_RESULTS = 3;
@@ -99,10 +97,6 @@ function roundDistance(distance: number): number {
   return Math.round(distance * 100) / 100;
 }
 
-function isAirport(stopName: string): boolean {
-  return normalizeText(stopName) === "airport";
-}
-
 function findAllStops(stops: Stop[], canonicalNames: string[]): Stop[] {
   return stops.filter((stop) =>
     canonicalNames.includes(normalizeText(stop.name_en)),
@@ -123,19 +117,12 @@ function escapeForRegex(text: string): string {
 
 /**
  * Get the best distance between two stops using the consensus engine.
- * Applies the airport terminal offset when either stop is the airport.
  */
 async function getBestDistance(stop1: Stop, stop2: Stop): Promise<number> {
   const consensus = await getConsensusDistance(stop1.name_en, stop2.name_en);
   const routeDistance = Math.abs(stop2.km - stop1.km);
 
-  let distance = consensus !== null ? consensus : routeDistance;
-
-  if (isAirport(stop1.name_en) || isAirport(stop2.name_en)) {
-    distance = Math.max(0, distance - AIRPORT_REDUCTION_KM);
-  }
-
-  return distance;
+  return consensus !== null ? consensus : routeDistance;
 }
 
 // ─── Controller ───────────────────────────────────────────────────────────────
@@ -218,7 +205,7 @@ export async function calculateFare(
 
         const distance = roundDistance(minDistance);
         const fare = roundFare(
-          Math.max(route.min_fare, distance * RATE_PER_KM) * FARE_DISCOUNT,
+          Math.max(route.min_fare, distance * RATE_PER_KM),
         );
 
         const buses =
@@ -318,12 +305,10 @@ export async function calculateFare(
                     ]);
 
                     const leg1Fare = roundFare(
-                      Math.max(route1.min_fare, leg1Dist * RATE_PER_KM) *
-                        FARE_DISCOUNT,
+                      Math.max(route1.min_fare, leg1Dist * RATE_PER_KM),
                     );
                     const leg2Fare = roundFare(
-                      Math.max(route2.min_fare, leg2Dist * RATE_PER_KM) *
-                        FARE_DISCOUNT,
+                      Math.max(route2.min_fare, leg2Dist * RATE_PER_KM),
                     );
 
                     const totalFare = leg1Fare + leg2Fare;
@@ -335,7 +320,7 @@ export async function calculateFare(
                       Math.max(
                         Math.max(route1.min_fare, route2.min_fare),
                         totalDistance * RATE_PER_KM,
-                      ) * FARE_DISCOUNT,
+                      ),
                     );
 
                     if (totalFare > hypotheticalDirect * 1.5) continue;

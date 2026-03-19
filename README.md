@@ -4,7 +4,7 @@ A bilingual (Bengali/English) BRTA fare calculator for Dhaka bus commuters. Sele
 
 ## Features
 
-- **Accurate Fares** — Uses BRTA-approved rates (&#2547;2.41/km) with Google Maps-verified distances
+- **Accurate Fares** — Uses BRTA-approved rates (&#2547;2.42/km) with Google Maps-verified distances
 - **Bilingual UI** — Full Bengali and English support with one-tap language switching
 - **Dark Mode** — Light and dark themes with design-token-driven color system
 - **Student Fare** — Toggle to see half-fare for students
@@ -180,7 +180,7 @@ Changing `--radius` or `--primary` in `:root` scales the entire UI proportionall
    - Precomputed Google Maps direct driving distance (primary)
    - Dijkstra shortest path through verified edges (fallback)
    - Database minimum km difference (last resort)
-4. Fare = `max(min_fare, distance × 2.41)`, rounded to nearest taka
+4. Fare = `max(min_fare, distance × 2.42)`, rounded to nearest taka
 5. Results sorted by fare, deduplicated by bus name
 
 ## Map Features

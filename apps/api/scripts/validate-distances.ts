@@ -243,7 +243,7 @@ async function main() {
     if (entries) {
       const dists = entries.map((e) => e.distance).filter((d) => d > 0);
       const min = Math.min(...dists);
-      const fare = Math.round(Math.max(10, min * 2.41));
+      const fare = Math.round(Math.max(10, min * 2.42));
       console.log(`${s1} ↔ ${s2}: ${min.toFixed(1)} km → ৳${fare}  (from ${dists.length} routes)`);
     } else {
       console.log(`${s1} ↔ ${s2}: no data`);

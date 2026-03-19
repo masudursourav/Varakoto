@@ -85,7 +85,7 @@ for (const [s1, s2] of pairs) {
       ? `${(((consensus - google) / google) * 100).toFixed(0)}%`
       : "N/A";
   const fare = consensus
-    ? `৳${Math.round(Math.max(10, consensus * 2.41))}`
+    ? `৳${Math.round(Math.max(10, consensus * 2.42))}`
     : "N/A";
 
   console.log(

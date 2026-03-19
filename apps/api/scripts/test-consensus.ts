@@ -63,7 +63,7 @@ for (const [a, b] of pairs) {
   const dist = await getConsensusDistance(a, b);
   const label = `${a} ↔ ${b}`;
   const gRef = googleRef[label];
-  const fare = dist ? Math.round(Math.max(10, dist * 2.41)) : "N/A";
+  const fare = dist ? Math.round(Math.max(10, dist * 2.42)) : "N/A";
   const dev = dist && gRef ? `${((dist - gRef) / gRef * 100).toFixed(0)}%` : "N/A";
 
   console.log(

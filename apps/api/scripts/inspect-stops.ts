@@ -70,7 +70,7 @@ async function main() {
         for (const a of airportStops) {
           for (const s of sainikStops) {
             const dist = Math.abs((s as any).km - (a as any).km);
-            const fare = Math.max(route.min_fare!, dist * 2.41);
+            const fare = Math.max(route.min_fare!, dist * 2.42);
             console.log(
               `  >> Distance Airport→Sainik: ${dist.toFixed(2)} km, Fare: ৳${Math.round(fare)}`
             );
