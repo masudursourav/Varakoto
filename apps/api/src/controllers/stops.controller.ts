@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
-import { BusRoute } from "../models/busRoute.model.js";
 import { getAliasMap } from "../utils/stopAlias.js";
 import { normalizeText } from "../utils/normalizeText.js";
+import { getStopMap } from "../utils/stopMap.js";
 
 export async function getStops(
   _req: Request,
@@ -9,26 +9,23 @@ export async function getStops(
   next: NextFunction
 ): Promise<void> {
   try {
-    const routes = await BusRoute.find({}, { stops: 1 }).lean();
+    const stopMap = await getStopMap();
     const aliasMap = await getAliasMap();
 
     // Deduplicate stops by canonical English name
     const canonicalStops = new Map<string, { name_en: string; name_bn: string }>();
 
-    for (const route of routes) {
-      for (const stop of route.stops) {
-        const normalized = normalizeText(stop.name_en);
-        const canonicalNames = aliasMap.get(normalized);
-        const canonical = canonicalNames
-          ? Array.from(canonicalNames)[0]
-          : normalized;
+    for (const [normalized, stop] of stopMap) {
+      const canonicalNames = aliasMap.get(normalized);
+      const canonical = canonicalNames
+        ? Array.from(canonicalNames)[0]
+        : normalized;
 
-        if (!canonicalStops.has(canonical)) {
-          canonicalStops.set(canonical, {
-            name_en: stop.name_en,
-            name_bn: stop.name_bn,
-          });
-        }
+      if (!canonicalStops.has(canonical)) {
+        canonicalStops.set(canonical, {
+          name_en: stop.name_en,
+          name_bn: stop.name_bn,
+        });
       }
     }
 

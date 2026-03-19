@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/context/language-context";
 import { t } from "@/lib/i18n";
@@ -79,11 +79,43 @@ export function HomeContent() {
     lng: number;
   } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const gpsCache = useRef<{ lat: number; lng: number; ts: number } | null>(null);
+
+  const GPS_CACHE_TTL = 30_000; // 30 seconds
 
   const showToast = (message: string) => {
     setToast(message);
     setTimeout(() => setToast(null), 4000);
   };
+
+  const getPosition = useCallback(
+    (
+      onSuccess: (lat: number, lng: number) => void,
+      onError?: (err: GeolocationPositionError) => void,
+    ) => {
+      if (!navigator.geolocation) {
+        showToast(t(lang, "locationError"));
+        return;
+      }
+
+      const cached = gpsCache.current;
+      if (cached && Date.now() - cached.ts < GPS_CACHE_TTL) {
+        onSuccess(cached.lat, cached.lng);
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          gpsCache.current = { lat: latitude, lng: longitude, ts: Date.now() };
+          onSuccess(latitude, longitude);
+        },
+        onError,
+        { enableHighAccuracy: true, timeout: 10000 },
+      );
+    },
+    [lang],
+  );
 
   // Fetch stops once on mount.
   // `lang` is intentionally excluded from the dependency array:
@@ -138,18 +170,12 @@ export function HomeContent() {
   };
 
   const handleLocate = () => {
-    if (!navigator.geolocation) {
-      showToast(t(lang, "locationError"));
-      return;
-    }
-
     setLocating(true);
     setNearestRoute(null);
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
+    getPosition(
+      async (lat, lng) => {
         try {
-          const { latitude, longitude } = position.coords;
-          const routeData = await fetchRouteToStop(latitude, longitude);
+          const routeData = await fetchRouteToStop(lat, lng);
           if (routeData) {
             setNearestRoute(routeData);
           } else {
@@ -169,7 +195,6 @@ export function HomeContent() {
           showToast(t(lang, "locationError"));
         }
       },
-      { enableHighAccuracy: true, timeout: 10000 },
     );
   };
 
@@ -182,17 +207,9 @@ export function HomeContent() {
   };
 
   const handleOpenNearbyMap = () => {
-    if (!navigator.geolocation) {
-      showToast(t(lang, "locationError"));
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setNearbyMapCoords({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        });
+    getPosition(
+      (lat, lng) => {
+        setNearbyMapCoords({ lat, lng });
       },
       (err) => {
         if (err.code === err.PERMISSION_DENIED) {
@@ -201,7 +218,6 @@ export function HomeContent() {
           showToast(t(lang, "locationError"));
         }
       },
-      { enableHighAccuracy: true, timeout: 10000 },
     );
   };
 

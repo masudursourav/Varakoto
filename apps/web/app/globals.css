@@ -137,6 +137,29 @@
   }
 }
 
+/* Compact map attribution overlay */
+.map-attribution {
+  position: absolute;
+  bottom: 2px;
+  left: 4px;
+  z-index: 1000;
+  font-size: 10px;
+  line-height: 1;
+  color: rgba(0, 0, 0, 0.55);
+  text-decoration: none;
+  pointer-events: auto;
+}
+.map-attribution:hover {
+  color: rgba(0, 0, 0, 0.8);
+  text-decoration: underline;
+}
+.dark .map-attribution {
+  color: rgba(255, 255, 255, 0.45);
+}
+.dark .map-attribution:hover {
+  color: rgba(255, 255, 255, 0.7);
+}
+
 /* Pulse animation for user location marker on map */
 @keyframes pulse {
   0% {

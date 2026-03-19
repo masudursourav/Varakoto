@@ -140,6 +140,405 @@ const swaggerDocument = {
         },
       },
     },
+    "/nearest-stop": {
+      get: {
+        summary: "Find nearest bus stops",
+        description:
+          "Returns the nearest bus stops to a given GPS coordinate using Haversine distance and optional Barikoi reverse geocoding for area-name matching.",
+        operationId: "getNearestStop",
+        tags: ["Location"],
+        parameters: [
+          {
+            name: "lat",
+            in: "query",
+            required: true,
+            schema: { type: "number", example: 23.8513 },
+            description: "Latitude of the user's position",
+          },
+          {
+            name: "lng",
+            in: "query",
+            required: true,
+            schema: { type: "number", example: 90.4089 },
+            description: "Longitude of the user's position",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "Nearest stops found",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    area: {
+                      type: "string",
+                      nullable: true,
+                      example: "Banani",
+                      description:
+                        "Area name from Barikoi reverse geocoding, or null if unavailable",
+                    },
+                    data: {
+                      type: "array",
+                      items: {
+                        $ref: "#/components/schemas/NearestStopItem",
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Missing lat/lng",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/Error" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/search/places": {
+      get: {
+        summary: "Search places and map to nearest stop",
+        description:
+          "Proxies the Barikoi Autocomplete API, then maps each result's coordinates to the nearest known bus stop. Results are limited to the Dhaka metro area.",
+        operationId: "searchPlaces",
+        tags: ["Location"],
+        parameters: [
+          {
+            name: "q",
+            in: "query",
+            required: true,
+            schema: { type: "string", example: "জাতীয় সংসদ" },
+            description:
+              "Search query (min 2 characters, Bengali or English)",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "Place search results with nearest stops",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    data: {
+                      type: "array",
+                      items: {
+                        $ref: "#/components/schemas/PlaceSearchResult",
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Query too short",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/Error" },
+              },
+            },
+          },
+          "503": {
+            description: "Place search not configured (missing API key)",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/Error" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/stop-coords": {
+      get: {
+        summary: "Get stop coordinates",
+        description:
+          "Returns latitude/longitude for origin and destination stops, resolved via alias matching and Barikoi geocoding.",
+        operationId: "getStopCoords",
+        tags: ["Location"],
+        parameters: [
+          {
+            name: "origin",
+            in: "query",
+            required: true,
+            schema: { type: "string", example: "Airport" },
+            description: "Origin stop name (Bengali or English)",
+          },
+          {
+            name: "destination",
+            in: "query",
+            required: true,
+            schema: { type: "string", example: "Farmgate" },
+            description: "Destination stop name (Bengali or English)",
+          },
+        ],
+        responses: {
+          "200": {
+            description:
+              "Coordinates for both stops, or null if either could not be resolved",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    data: {
+                      nullable: true,
+                      type: "object",
+                      properties: {
+                        origin: {
+                          $ref: "#/components/schemas/LatLng",
+                        },
+                        destination: {
+                          $ref: "#/components/schemas/LatLng",
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Missing origin or destination",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/Error" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/route-to-stop": {
+      get: {
+        summary: "Walking route to nearest stop",
+        description:
+          "Finds the nearest bus stop to the user's GPS position, then fetches a walking route via the Barikoi Routing API.",
+        operationId: "getRouteToStop",
+        tags: ["Location"],
+        parameters: [
+          {
+            name: "lat",
+            in: "query",
+            required: true,
+            schema: { type: "number", example: 23.78 },
+            description: "Latitude of the user's position",
+          },
+          {
+            name: "lng",
+            in: "query",
+            required: true,
+            schema: { type: "number", example: 90.41 },
+            description: "Longitude of the user's position",
+          },
+        ],
+        responses: {
+          "200": {
+            description:
+              "Nearest stop info with optional walking route geometry",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    data: {
+                      nullable: true,
+                      type: "object",
+                      properties: {
+                        user: { $ref: "#/components/schemas/LatLng" },
+                        stop: {
+                          $ref: "#/components/schemas/RouteToStopStop",
+                        },
+                        route: {
+                          nullable: true,
+                          type: "object",
+                          properties: {
+                            geometry: {
+                              type: "array",
+                              items: {
+                                type: "array",
+                                items: { type: "number" },
+                                minItems: 2,
+                                maxItems: 2,
+                              },
+                              description:
+                                "Walking route as [lat, lng] coordinate pairs",
+                              example: [
+                                [23.78, 90.41],
+                                [23.785, 90.412],
+                              ],
+                            },
+                            duration_min: {
+                              type: "integer",
+                              example: 8,
+                              description: "Estimated walking time in minutes",
+                            },
+                            distance_km: {
+                              type: "number",
+                              example: 0.6,
+                              description: "Walking distance in kilometres",
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Missing lat/lng",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/Error" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/nearby-stops": {
+      get: {
+        summary: "List nearby bus stops",
+        description:
+          "Returns all bus stops within 5 km of the user's GPS position, including coordinates for map rendering. Limited to 15 results, sorted by distance.",
+        operationId: "getNearbyStops",
+        tags: ["Location"],
+        parameters: [
+          {
+            name: "lat",
+            in: "query",
+            required: true,
+            schema: { type: "number", example: 23.78 },
+            description: "Latitude of the user's position",
+          },
+          {
+            name: "lng",
+            in: "query",
+            required: true,
+            schema: { type: "number", example: 90.41 },
+            description: "Longitude of the user's position",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "List of nearby stops with coordinates",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    data: {
+                      type: "array",
+                      items: {
+                        $ref: "#/components/schemas/NearbyStopItem",
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Missing lat/lng",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/Error" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/route-map": {
+      get: {
+        summary: "Route map data",
+        description:
+          "Returns stop coordinates and driving route geometry for rendering an interactive map. Supports an optional transfer stop for multi-bus routes, producing two route segments.",
+        operationId: "getRouteMap",
+        tags: ["Location"],
+        parameters: [
+          {
+            name: "origin",
+            in: "query",
+            required: true,
+            schema: { type: "string", example: "Airport" },
+            description: "Origin stop name (Bengali or English)",
+          },
+          {
+            name: "destination",
+            in: "query",
+            required: true,
+            schema: { type: "string", example: "Farmgate" },
+            description: "Destination stop name (Bengali or English)",
+          },
+          {
+            name: "transfer",
+            in: "query",
+            required: false,
+            schema: { type: "string", example: "Mohakhali" },
+            description:
+              "Optional transfer stop name for multi-bus routes",
+          },
+        ],
+        responses: {
+          "200": {
+            description:
+              "Route map data with coordinates and geometry, or null if stops could not be resolved",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    data: {
+                      nullable: true,
+                      type: "object",
+                      properties: {
+                        origin: { $ref: "#/components/schemas/LatLng" },
+                        destination: {
+                          $ref: "#/components/schemas/LatLng",
+                        },
+                        transfer: {
+                          nullable: true,
+                          $ref: "#/components/schemas/LatLng",
+                        },
+                        segments: {
+                          type: "array",
+                          items: {
+                            $ref: "#/components/schemas/RouteSegment",
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Missing origin or destination",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/Error" },
+              },
+            },
+          },
+        },
+      },
+    },
   },
   components: {
     schemas: {
@@ -203,6 +602,92 @@ const swaggerDocument = {
         properties: {
           success: { type: "boolean", example: false },
           message: { type: "string", example: "Origin stop not found" },
+        },
+      },
+      LatLng: {
+        type: "object",
+        properties: {
+          lat: { type: "number", example: 23.8513 },
+          lng: { type: "number", example: 90.4089 },
+        },
+      },
+      NearestStopItem: {
+        type: "object",
+        properties: {
+          name_en: { type: "string", example: "Banani" },
+          name_bn: { type: "string", example: "বনানী" },
+          distance_km: {
+            type: "number",
+            nullable: true,
+            example: 0.8,
+            description:
+              "Distance in km from user position, or null for area-name matches",
+          },
+        },
+      },
+      PlaceSearchResult: {
+        type: "object",
+        properties: {
+          place_name: {
+            type: "string",
+            example: "Jatiya Sangsad Bhaban, Sher-e-Bangla Nagar",
+            description: "Address or name returned by Barikoi",
+          },
+          name_en: { type: "string", example: "Farmgate" },
+          name_bn: { type: "string", example: "ফার্মগেট" },
+          distance_km: {
+            type: "number",
+            example: 1.2,
+            description:
+              "Distance from the place to the nearest known bus stop",
+          },
+        },
+      },
+      RouteToStopStop: {
+        type: "object",
+        properties: {
+          name_en: { type: "string", example: "Farmgate" },
+          name_bn: { type: "string", example: "ফার্মগেট" },
+          lat: { type: "number", example: 23.7575 },
+          lng: { type: "number", example: 90.3908 },
+          distance_km: {
+            type: "number",
+            example: 0.6,
+            description: "Straight-line distance from user to stop",
+          },
+        },
+      },
+      NearbyStopItem: {
+        type: "object",
+        properties: {
+          name_en: { type: "string", example: "Banani" },
+          name_bn: { type: "string", example: "বনানী" },
+          lat: { type: "number", example: 23.7937 },
+          lng: { type: "number", example: 90.4066 },
+          distance_km: {
+            type: "number",
+            example: 1.3,
+            description: "Distance from user position in km",
+          },
+        },
+      },
+      RouteSegment: {
+        type: "object",
+        properties: {
+          geometry: {
+            type: "array",
+            items: {
+              type: "array",
+              items: { type: "number" },
+              minItems: 2,
+              maxItems: 2,
+            },
+            description: "Route polyline as [lng, lat] coordinate pairs",
+            example: [
+              [90.4089, 23.8513],
+              [90.3908, 23.7575],
+            ],
+          },
         },
       },
     },
