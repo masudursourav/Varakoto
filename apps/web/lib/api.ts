@@ -226,6 +226,33 @@ export async function fetchNearbyStops(
   }
 }
 
+export interface RouteMapData {
+  origin: { lat: number; lng: number };
+  destination: { lat: number; lng: number };
+  transfer: { lat: number; lng: number } | null;
+  segments: Array<{ geometry: [number, number][] }>; // [lng,lat] pairs
+}
+
+/**
+ * Fetch stop coordinates and route geometry for the results map.
+ */
+export async function fetchRouteMap(
+  origin: string,
+  destination: string,
+  transfer?: string,
+): Promise<RouteMapData | null> {
+  try {
+    let url = `${API_BASE}/api/v1/route-map?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}`;
+    if (transfer) url += `&transfer=${encodeURIComponent(transfer)}`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function calculateFare(
   origin: string,
   destination: string,

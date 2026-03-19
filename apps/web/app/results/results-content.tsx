@@ -7,12 +7,25 @@ import { t } from "@/lib/i18n";
 import { calculateFare, type FareResult } from "@/lib/api";
 import { FareResultCard } from "@/components/fare-result-card";
 import { ResultsSkeleton } from "@/components/skeletons";
+import dynamic from "next/dynamic";
 import {
   SearchX,
   Phone,
   GraduationCap,
   ArrowLeft,
+  Map as MapIcon,
+  ChevronUp,
 } from "lucide-react";
+
+const ResultsMap = dynamic(
+  () => import("@/components/results-map").then((m) => m.ResultsMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-48 animate-pulse rounded-panel bg-slate-100 dark:bg-slate-800" />
+    ),
+  },
+);
 
 const BRTA_COMPLAINT_NUMBER = "16107";
 
@@ -28,6 +41,7 @@ export function ResultsContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showStudentFare, setShowStudentFare] = useState(false);
+  const [showMap, setShowMap] = useState(false);
 
   useEffect(() => {
     if (!origin || !destination) {
@@ -105,6 +119,38 @@ export function ResultsContent() {
               <div className="peer h-6 w-11 rounded-full bg-slate-200 after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-emerald-500 peer-checked:after:translate-x-full peer-checked:after:border-white dark:bg-slate-700 dark:after:border-slate-600" />
             </label>
           </div>
+        )}
+
+        {/* Map Toggle & Map */}
+        {!loading && !error && results.length > 0 && (
+          <>
+            <button
+              onClick={() => setShowMap((v) => !v)}
+              className="flex w-full items-center justify-center gap-2 rounded-panel border border-slate-100 bg-white px-4 py-3 text-sm font-medium text-primary transition-colors hover:bg-slate-50 active:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800"
+            >
+              {showMap ? (
+                <>
+                  <ChevronUp className="h-4 w-4" />
+                  {t(lang, "hideMap")}
+                </>
+              ) : (
+                <>
+                  <MapIcon className="h-4 w-4" />
+                  {t(lang, "viewOnMap")}
+                </>
+              )}
+            </button>
+            {showMap && (
+              <ResultsMap
+                origin={origin}
+                destination={destination}
+                transferStop={
+                  results.find((r) => r.is_transfer && r.transfer)?.transfer
+                    ?.transfer_stop_en
+                }
+              />
+            )}
+          </>
         )}
 
         {loading ? (

@@ -95,6 +95,12 @@ const translations = {
     locationError: "অবস্থান পাওয়া যায়নি",
     nearestStop: "নিকটতম স্টপ",
     locationDenied: "অবস্থান অনুমতি প্রত্যাখ্যান করা হয়েছে",
+    viewOnMap: "মানচিত্রে দেখুন",
+    hideMap: "মানচিত্র গোপন করুন",
+    loadingMap: "মানচিত্র লোড হচ্ছে...",
+    originStop: "যাত্রা শুরু",
+    destinationStop: "গন্তব্য",
+    transferStop: "পরিবর্তন স্টপ",
   },
   en: {
     appName: "Vara Koto",
@@ -190,6 +196,12 @@ const translations = {
     locationError: "Could not get location",
     nearestStop: "Nearest Stop",
     locationDenied: "Location permission denied",
+    viewOnMap: "View on Map",
+    hideMap: "Hide Map",
+    loadingMap: "Loading map...",
+    originStop: "Origin",
+    destinationStop: "Destination",
+    transferStop: "Transfer Stop",
   },
 } as const;
 
