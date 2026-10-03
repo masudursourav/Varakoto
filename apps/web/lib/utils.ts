@@ -21,19 +21,26 @@ export function toBengaliNum(n: number | string): string {
     .join("");
 }
 
-/** Minimum student fare in taka (BRTA rule: no fare below ৳10 for students). */
-export const MIN_STUDENT_FARE = 10;
+/** Minimum student fare in taka — half of the ৳10 metro minimum fare. */
+export const MIN_STUDENT_FARE = 5;
+
+/** Half of a regular fare, rounded to whole taka (no minimum applied). */
+export function halfFare(fare: number): number {
+  return Math.round(fare / 2 + 1e-9);
+}
 
 /**
- * Calculate the student half-fare from a full regular fare.
- * Students pay 50% of the regular fare, subject to the minimum of ৳10.
- * Uses Math.ceil so students are never charged a fractional taka.
+ * Calculate the student half-fare from a full journey fare.
+ *
+ * Students pay 50% of the regular fare. There is no ৳10 student floor:
+ * that would erase the discount on minimum-fare trips. The floor is half
+ * of the BRTA metro minimum fare (৳10 → ৳5).
  *
  * e.g. calcStudentFare(35) → 18
- *      calcStudentFare(15) → 8 → clamped to 10
+ *      calcStudentFare(10) → 5
  */
 export function calcStudentFare(fare: number): number {
-  return Math.max(MIN_STUDENT_FARE, Math.ceil(fare / 2));
+  return Math.max(MIN_STUDENT_FARE, halfFare(fare));
 }
 
 /**

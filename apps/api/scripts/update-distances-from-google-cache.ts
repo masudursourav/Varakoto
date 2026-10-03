@@ -91,7 +91,9 @@ function coordKey(lat: number, lng: number): string {
 }
 
 function pairKey(a: string, b: string): string {
-  return [a, b].sort().join("||");
+  const na = normName(a);
+  const nb = normName(b);
+  return na < nb ? `${na}||${nb}` : `${nb}||${na}`;
 }
 
 function coordPairKey(c1: string, c2: string): string {
@@ -165,6 +167,11 @@ async function main() {
     throw new Error(`Missing distance cache: ${DIST_CACHE_FILE}`);
   }
 
+  const { isPlausibleDistance } = await import(
+    "../src/utils/distanceValidation.js"
+  );
+  const FORCE = process.argv.includes("--force");
+
   const placeCache =
     loadJson<Record<string, PlaceCacheRecord>>(PLACE_CACHE_FILE);
   const googleDistCache = loadJson<Record<string, number>>(DIST_CACHE_FILE);
@@ -191,9 +198,12 @@ async function main() {
   const uniqueConsecutivePairs = new Set<string>();
   let importedPairs = 0;
   let overwrittenPairs = 0;
+  let keptExisting = 0;
+  let implausiblePairs = 0;
   let unresolvedStops = 0;
   let missingCoordPairs = 0;
   const unresolvedExamples = new Set<string>();
+  const implausibleExamples = new Set<string>();
 
   for (const route of routes) {
     const stops = route.stops ?? [];
@@ -221,12 +231,33 @@ async function main() {
         continue;
       }
 
+      // Never import a value that fails physical plausibility checks.
+      if (!isPlausibleDistance(a, b, dist)) {
+        implausiblePairs++;
+        if (implausibleExamples.size < 10) {
+          implausibleExamples.add(`${a} → ${b} (${dist.toFixed(1)}km)`);
+        }
+        continue;
+      }
+
       const existing = edgeCache[pKey];
+      const existingIsUsable =
+        typeof existing === "number" &&
+        Number.isFinite(existing) &&
+        isPlausibleDistance(a, b, existing);
+
       if (
-        existing !== undefined &&
-        existing !== null &&
-        Math.abs(existing - dist) > 0.001
+        existingIsUsable &&
+        !FORCE &&
+        Math.abs(existing - dist) / Math.min(existing, dist) > 0.3
       ) {
+        // Disagreement > 30% — keep the existing verified value unless
+        // the operator explicitly passes --force.
+        keptExisting++;
+        continue;
+      }
+
+      if (existingIsUsable && Math.abs(existing - dist) > 0.001) {
         overwrittenPairs++;
       }
 
@@ -240,11 +271,18 @@ async function main() {
   console.log(`Unique consecutive pairs: ${uniqueConsecutivePairs.size}`);
   console.log(`Pairs imported from coordinate cache: ${importedPairs}`);
   console.log(`Pairs overwritten in edge cache: ${overwrittenPairs}`);
+  console.log(`Pairs rejected as implausible: ${implausiblePairs}`);
+  console.log(`Pairs kept (existing disagreed >30%): ${keptExisting}`);
   console.log(`Unresolved stop lookups: ${unresolvedStops}`);
   console.log(`Missing coordinate-pair distances: ${missingCoordPairs}`);
   if (unresolvedExamples.size > 0) {
     console.log(
       `Unresolved stop examples: ${Array.from(unresolvedExamples).join(", ")}`,
+    );
+  }
+  if (implausibleExamples.size > 0) {
+    console.log(
+      `Implausible examples: ${Array.from(implausibleExamples).join(", ")}`,
     );
   }
 
@@ -269,7 +307,7 @@ async function main() {
         missing = true;
         break;
       }
-      newKms.push(Math.round((newKms[i] + dist) * 10) / 10);
+      newKms.push(newKms[i] + dist);
     }
 
     if (missing) {
@@ -277,8 +315,11 @@ async function main() {
       continue;
     }
 
+    // Round only for comparison and storage (0.1 km precision).
+    const roundedKms = newKms.map((k) => Math.round(k * 10) / 10);
+
     const changed = stops.some(
-      (s, i) => Math.abs((s.km ?? 0) - newKms[i]) > 0.05,
+      (s, i) => Math.abs((s.km ?? 0) - roundedKms[i]) > 0.05,
     );
     if (!changed) {
       unchangedCount++;
@@ -287,7 +328,7 @@ async function main() {
 
     updatedCount++;
     if (!DRY_RUN) {
-      const updatedStops = stops.map((s, i) => ({ ...s, km: newKms[i] }));
+      const updatedStops = stops.map((s, i) => ({ ...s, km: roundedKms[i] }));
       await BusRoute.updateOne(
         { _id: route._id },
         { $set: { stops: updatedStops } },

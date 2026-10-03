@@ -1,26 +1,29 @@
 /**
  * Distance Consensus — multi-source distance resolution.
  *
- * Priority order:
+ * Selection priority (first available, plausible source wins):
  * 1. Precomputed Google direct distance (from .direct-distance-cache.json)
- *    → Most accurate, covers all pairs within 30 km
- * 2. Dijkstra shortest path through Google-verified edges (O((V+E) log V) binary heap)
- *    → Fallback for uncached pairs, applies 0.90 correction factor
- * 3. Barikoi driving distance (real road routing via Barikoi API)
+ *    → Most accurate, covers all pairs within 60 km
+ * 2. Barikoi driving distance (real road routing via Barikoi API)
  *    → Uses stop coordinates + Barikoi Routing API, cached in-memory
+ * 3. Dijkstra shortest path through Google-verified edges
+ *    → O((V+E) log V) binary heap, applies a calibrated correction factor
  * 4. DB minimum km difference
  *    → Last resort fallback
  *
- * Final result: minimum of all available sources, ensuring fare is
- * never higher than any verified source.
+ * Every candidate is rejected when it fails the plausibility bounds in
+ * `distanceValidation.ts`, so a single bad geocode can never corrupt a
+ * fare, and sources are NOT combined by taking the minimum: the smallest
+ * of four noisy measurements systematically understates distances.
  */
 
 import fs from "fs";
 import path from "path";
 import { BusRoute } from "../models/busRoute.model.js";
 import { normalizeText } from "./normalizeText.js";
-import { STOP_COORDS, barikoiGeocode } from "./geo.js";
+import { STOP_COORDS, barikoiGeocode, haversineKm } from "./geo.js";
 import { env } from "../config/env.js";
+import { isPlausibleDistance } from "./distanceValidation.js";
 
 // ─── Cache file paths ─────────────────────────────────────────────────────────
 
@@ -29,11 +32,20 @@ const DIRECT_CACHE = path.resolve(process.cwd(), ".direct-distance-cache.json");
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-/** Dijkstra correction: hop-by-hop routes tend to overestimate ~10%. */
-const DIJKSTRA_FACTOR = 0.9;
+/**
+ * Dijkstra correction: hop-by-hop routes overestimate Google driving
+ * distance. 0.840 is the median of google/rawDijkstra across 10 000+
+ * verified pairs of the current edge graph (recompute with
+ * scripts/calibrate-factor.ts after refreshing the distance caches).
+ */
+export const DIJKSTRA_FACTOR = 0.84;
 
 /** How long (ms) to keep the DB-derived distance map before rebuilding. */
 const DB_MIN_MAP_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+/** A Dijkstra detour may not exceed this multiple of the straight line. */
+const MAX_PATH_DETOUR_RATIO = 2.5;
+const MAX_PATH_DETOUR_KM = 3;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -182,7 +194,9 @@ function loadDirectCache(): Record<string, number | null> {
   const data: Record<string, number | null> = JSON.parse(
     fs.readFileSync(DIRECT_CACHE, "utf-8"),
   );
-  const validCount = Object.values(data).filter((v) => v !== null).length;
+  const validCount = Object.values(data).filter(
+    (v) => v !== null && Number.isFinite(v),
+  ).length;
   console.log(`Direct distance cache: ${validCount} pairs`);
   return data;
 }
@@ -199,14 +213,22 @@ function buildGraph(): Graph {
     fs.readFileSync(EDGE_CACHE, "utf-8"),
   );
 
+  let skipped = 0;
+
   for (const [key, dist] of Object.entries(cache)) {
-    if (dist === null || dist <= 0) continue;
+    if (dist === null || !Number.isFinite(dist) || dist <= 0) continue;
 
     const parts = key.split("||");
     if (parts.length !== 2) continue;
 
     const na = normalizeText(parts[0]);
     const nb = normalizeText(parts[1]);
+
+    // Never let a corrupted edge poison shortest-path searches.
+    if (!isPlausibleDistance(parts[0], parts[1], dist)) {
+      skipped++;
+      continue;
+    }
 
     if (!g.has(na)) g.set(na, new Map());
     if (!g.has(nb)) g.set(nb, new Map());
@@ -218,6 +240,9 @@ function buildGraph(): Graph {
     }
   }
 
+  if (skipped > 0) {
+    console.warn(`Distance graph: skipped ${skipped} implausible edges`);
+  }
   console.log(
     `Distance graph: ${g.size} stops, ${Object.keys(cache).length} edges`,
   );
@@ -234,6 +259,9 @@ async function buildDbMinMap(): Promise<Map<string, number>> {
       for (let j = i + 1; j < stops.length; j++) {
         const dist = Math.abs(stops[j].km - stops[i].km);
         if (dist === 0) continue;
+        if (!isPlausibleDistance(stops[i].name_en, stops[j].name_en, dist)) {
+          continue;
+        }
 
         const key = pairKey(stops[i].name_en, stops[j].name_en);
         const current = result.get(key);
@@ -290,14 +318,21 @@ async function getBarikoiRoutingDistance(
     const data = await res.json();
 
     if (data.routes && data.routes.length > 0) {
-      const distKm = Math.round((data.routes[0].distance / 1000) * 10) / 10;
-      barikoiDistCache.set(key, distKm);
-      return distKm;
+      const rawKm = data.routes[0].distance / 1000;
+      if (isPlausibleDistance(stop1En, stop2En, rawKm)) {
+        const distKm = Math.round(rawKm * 100) / 100;
+        barikoiDistCache.set(key, distKm);
+        return distKm;
+      }
+      // Implausible routing result (bad geocode) — don't cache as usable.
+      barikoiDistCache.set(key, null);
+      return null;
     }
 
     barikoiDistCache.set(key, null);
     return null;
   } catch {
+    // Transient failures are NOT cached so the next request retries.
     return null;
   }
 }
@@ -333,11 +368,28 @@ async function ensureReady(): Promise<void> {
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 /**
+ * Raw Dijkstra path distance (no correction factor, no other sources).
+ * Exposed so the calibration script can measure the true path/Dijkstra
+ * ratio instead of calibrating against the already-corrected consensus.
+ */
+export async function getRawDijkstraDistance(
+  stop1En: string,
+  stop2En: string,
+): Promise<number | null> {
+  await ensureReady();
+
+  const na = normalizeText(stop1En);
+  const nb = normalizeText(stop2En);
+
+  if (!graph!.has(na) || !graph!.has(nb)) return null;
+  return dijkstra(graph!, na, nb);
+}
+
+/**
  * Get the best distance (km) between two stops.
  *
- * Returns the *minimum* of all available sources so that the calculated
- * fare is never higher than what Google Maps would suggest.
- *
+ * Returns the first plausible source in priority order:
+ * Google direct → Barikoi → Dijkstra (corrected) → DB kilometres.
  * Returns `null` when no distance information is available at all.
  */
 export async function getConsensusDistance(
@@ -347,19 +399,32 @@ export async function getConsensusDistance(
   await ensureReady();
 
   const key = pairKey(stop1En, stop2En);
+  const na = normalizeText(stop1En);
+  const nb = normalizeText(stop2En);
 
-  // Source 1: Precomputed Google direct distance (most accurate)
+  // Source 1 (highest priority): precomputed Google direct distance.
   const googleDirect = directCache![key];
+  if (
+    typeof googleDirect === "number" &&
+    isPlausibleDistance(stop1En, stop2En, googleDirect)
+  ) {
+    return Math.round(googleDirect * 100) / 100;
+  }
 
-  // Source 2: Dijkstra shortest path + correction factor
+  // Source 2: Barikoi driving distance (real road routing). Only used when
+  // no verified Google direct value exists, so cached pairs never make an
+  // upstream API call.
+  const barikoiDist = await getBarikoiRoutingDistance(stop1En, stop2En);
+  if (barikoiDist !== null) {
+    return Math.round(barikoiDist * 100) / 100;
+  }
+
+  // Fallback: shortest path through verified edges.
   let dijkstraDist: number | null = null;
 
   if (dijkstraCache!.has(key)) {
     dijkstraDist = dijkstraCache!.get(key)!;
   } else {
-    const na = normalizeText(stop1En);
-    const nb = normalizeText(stop2En);
-
     if (graph!.has(na) && graph!.has(nb)) {
       const raw = dijkstra(graph!, na, nb);
       dijkstraDist = raw !== null ? raw * DIJKSTRA_FACTOR : null;
@@ -372,25 +437,36 @@ export async function getConsensusDistance(
   // Normalise the sentinel value used to cache "no path found"
   if (dijkstraDist === -1) dijkstraDist = null;
 
-  // Source 3: Barikoi driving distance (real road distance via routing API)
-  const barikoiDist = await getBarikoiRoutingDistance(stop1En, stop2En);
-
-  // Source 4: DB minimum km difference
-  const dbDist = dbMinMap!.get(key) ?? null;
-
-  // Collect all valid candidates and pick the smallest
-  const candidates: number[] = [];
-  if (googleDirect !== null && googleDirect !== undefined) {
-    candidates.push(googleDirect);
+  if (dijkstraDist !== null && dijkstraDist > 0) {
+    // Guard against ring-road detours: a path may not be wildly longer
+    // than the straight line when both stops have known coordinates.
+    const coords1 = STOP_COORDS[na];
+    const coords2 = STOP_COORDS[nb];
+    if (coords1 && coords2) {
+      const straightLine = haversineKm(
+        coords1[0],
+        coords1[1],
+        coords2[0],
+        coords2[1],
+      );
+      if (
+        dijkstraDist <=
+        straightLine * MAX_PATH_DETOUR_RATIO + MAX_PATH_DETOUR_KM
+      ) {
+        return Math.round(dijkstraDist * 100) / 100;
+      }
+    } else if (isPlausibleDistance(stop1En, stop2En, dijkstraDist)) {
+      return Math.round(dijkstraDist * 100) / 100;
+    }
   }
-  if (dijkstraDist !== null) candidates.push(dijkstraDist);
-  if (barikoiDist !== null) candidates.push(barikoiDist);
-  if (dbDist !== null) candidates.push(dbDist);
 
-  if (candidates.length === 0) return null;
+  // Last resort: DB minimum km difference.
+  const dbDist = dbMinMap!.get(key) ?? null;
+  if (dbDist !== null && isPlausibleDistance(stop1En, stop2En, dbDist)) {
+    return Math.round(dbDist * 100) / 100;
+  }
 
-  const result = Math.min(...candidates);
-  return Math.round(result * 10) / 10;
+  return null;
 }
 
 /**

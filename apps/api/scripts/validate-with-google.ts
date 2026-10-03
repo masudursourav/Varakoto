@@ -23,6 +23,9 @@ if (!GOOGLE_API_KEY) {
 const { getConsensusDistance } =
   await import("../src/utils/distanceConsensus.js");
 const { connectDatabase } = await import("../src/config/database.js");
+const { BRTA_RATE_PER_KM, calculateRideFare } = await import(
+  "../src/utils/fare.js"
+);
 
 await connectDatabase();
 
@@ -30,7 +33,7 @@ async function googleDistance(
   origin: string,
   dest: string,
 ): Promise<number | null> {
-  const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(origin + "bus stand" + ", Dhaka, Bangladesh")}&destination=${encodeURIComponent(dest + "bus stand" + ", Dhaka, Bangladesh")}&mode=driving&key=${GOOGLE_API_KEY}`;
+  const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(origin + " bus stand" + ", Dhaka, Bangladesh")}&destination=${encodeURIComponent(dest + " bus stand" + ", Dhaka, Bangladesh")}&mode=driving&key=${GOOGLE_API_KEY}`;
   try {
     const res = await fetch(url);
     const data = await res.json();
@@ -84,9 +87,7 @@ for (const [s1, s2] of pairs) {
     google && consensus
       ? `${(((consensus - google) / google) * 100).toFixed(0)}%`
       : "N/A";
-  const fare = consensus
-    ? `৳${Math.round(Math.max(10, consensus * 2.42))}`
-    : "N/A";
+  const fare = consensus ? `৳${calculateRideFare(consensus, 10)}` : "N/A";
 
   console.log(
     pair.padEnd(30) +

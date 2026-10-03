@@ -24,6 +24,11 @@ dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
 const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY || "";
 
+const { calculateRideFare } = await import("../src/utils/fare.js");
+const { isPlausibleDistance } = await import(
+  "../src/utils/distanceValidation.js"
+);
+
 const stopSchema = new mongoose.Schema(
   { name_en: String, name_bn: String, km: Number },
   { _id: false }
@@ -243,7 +248,7 @@ async function main() {
     if (entries) {
       const dists = entries.map((e) => e.distance).filter((d) => d > 0);
       const min = Math.min(...dists);
-      const fare = Math.round(Math.max(10, min * 2.42));
+      const fare = calculateRideFare(min, 10);
       console.log(`${s1} ↔ ${s2}: ${min.toFixed(1)} km → ৳${fare}  (from ${dists.length} routes)`);
     } else {
       console.log(`${s1} ↔ ${s2}: no data`);

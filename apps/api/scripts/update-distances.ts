@@ -2,9 +2,15 @@
  * Update all route km values using Google Maps driving distances.
  *
  * 1. Collects all unique consecutive stop pairs across routes
- * 2. Fetches Google driving distance for each pair (cached, rate-limited)
- * 3. Rebuilds cumulative km for each route
+ * 2. Fetches Google driving distance for each pair (cached, rate-limited,
+ *    plausibility-checked before caching)
+ * 3. Rebuilds cumulative km for each route (full precision; rounded to
+ *    0.1 km only when written)
  * 4. Updates the DB
+ *
+ * Cache keys are normalised (trim + collapse whitespace + lowercase) and
+ * then sorted, matching the runtime consensus engine, so "Farmgate||Khamar
+ * Bari" and "khamar bari||farmgate" are the same entry.
  *
  * Usage:
  *   npx tsx scripts/update-distances.ts          # dry-run (default)
@@ -23,6 +29,10 @@ dotenv.config({ path: path.resolve(__dirname, "../.env") });
 const GOOGLE_API_KEY = process.env.GOOGLE_MAPS_API_KEY || "";
 const DRY_RUN = !process.argv.includes("--apply");
 const CACHE_FILE = path.resolve(__dirname, "../.distance-cache.json");
+
+const { isPlausibleDistance } = await import(
+  "../src/utils/distanceValidation.js"
+);
 
 if (!GOOGLE_API_KEY) {
   console.error("Set GOOGLE_MAPS_API_KEY in .env");
@@ -58,8 +68,14 @@ function saveCache() {
   fs.writeFileSync(CACHE_FILE, JSON.stringify(distCache, null, 2));
 }
 
+function norm(s: string): string {
+  return s.trim().toLowerCase().replace(/\s+/g, " ");
+}
+/** Normalise, then sort, so key order never depends on input casing. */
 function pairKey(a: string, b: string): string {
-  return [a, b].sort().join("||");
+  const na = norm(a);
+  const nb = norm(b);
+  return na < nb ? `${na}||${nb}` : `${nb}||${na}`;
 }
 
 async function fetchGoogleDist(
@@ -73,22 +89,47 @@ async function fetchGoogleDist(
   const dest = `${stop2}, Dhaka, Bangladesh`;
   const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(dest)}&mode=driving&key=${GOOGLE_API_KEY}`;
 
-  try {
-    const res = await fetch(url);
-    const data = await res.json();
-    if (data.status === "OK" && data.routes.length > 0) {
-      const km = data.routes[0].legs[0].distance.value / 1000;
-      distCache[key] = km;
-      return km;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.status === "OK" && data.routes.length > 0) {
+        const km = data.routes[0].legs[0].distance.value / 1000;
+        if (!isPlausibleDistance(stop1, stop2, km)) {
+          console.warn(
+            `  Implausible Google distance for "${stop1}" → "${stop2}": ${km.toFixed(1)}km — skipped`
+          );
+          return null; // do not poison the cache
+        }
+        distCache[key] = km;
+        return km;
+      }
+      if (data.status === "ZERO_RESULTS") {
+        console.warn(`  Google has no route for "${stop1}" → "${stop2}"`);
+        distCache[key] = null;
+        return null;
+      }
+      if (
+        data.status === "OVER_QUERY_LIMIT" ||
+        data.status === "UNKNOWN_ERROR"
+      ) {
+        // Transient — back off, retry, never cache as null.
+        await new Promise((r) => setTimeout(r, 500));
+        continue;
+      }
+      console.warn(`  Google returned ${data.status} for "${stop1}" → "${stop2}"`);
+      distCache[key] = null;
+      return null;
+    } catch (err) {
+      // Network failure — retry, never cache as null.
+      await new Promise((r) => setTimeout(r, 500));
+      if (attempt === 1) {
+        console.warn(`  Fetch error for "${stop1}" → "${stop2}":`, err);
+      }
     }
-    console.warn(`  Google returned ${data.status} for "${stop1}" → "${stop2}"`);
-    distCache[key] = null;
-    return null;
-  } catch (err) {
-    console.warn(`  Fetch error for "${stop1}" → "${stop2}":`, err);
-    distCache[key] = null;
-    return null;
   }
+
+  return null;
 }
 
 // --- Main ---
@@ -131,7 +172,7 @@ for (const key of uncached) {
 saveCache();
 console.log(`Fetched ${fetched} distances from Google Maps\n`);
 
-// Step 3: Rebuild routes
+// Step 3: Rebuild routes (full precision, round on write)
 let updatedCount = 0;
 let failedCount = 0;
 const sampleChanges: string[] = [];
@@ -154,7 +195,7 @@ for (const route of routes) {
       break;
     }
 
-    newKms.push(Math.round((newKms[i] + dist) * 10) / 10);
+    newKms.push(newKms[i] + dist);
   }
 
   if (failed) {
@@ -162,9 +203,12 @@ for (const route of routes) {
     continue;
   }
 
+  // Round only for comparison and storage (0.1 km precision).
+  const roundedKms = newKms.map((k) => Math.round(k * 10) / 10);
+
   // Check if anything actually changed
   const changed = stops.some(
-    (s: any, i: number) => Math.abs(s.km - newKms[i]) > 0.05
+    (s: any, i: number) => Math.abs(s.km - roundedKms[i]) > 0.05
   );
 
   if (!changed) continue;
@@ -175,7 +219,7 @@ for (const route of routes) {
     const lines = [`Route ${route.route_id} (${route.route_name_en}):`];
     for (let i = 0; i < stops.length; i++) {
       const oldKm = (stops[i] as any).km;
-      const newKm = newKms[i];
+      const newKm = roundedKms[i];
       const diff = Math.abs(newKm - oldKm) > 0.5 ? " <<<" : "";
       lines.push(
         `  ${(stops[i] as any).name_en.padEnd(25)} ${String(oldKm).padStart(7)} → ${String(newKm).padStart(7)}${diff}`
@@ -187,7 +231,7 @@ for (const route of routes) {
   if (!DRY_RUN) {
     const updateStops = stops.map((s: any, i: number) => ({
       ...s,
-      km: newKms[i],
+      km: roundedKms[i],
     }));
     await BusRoute.updateOne(
       { _id: route._id },

@@ -564,7 +564,12 @@ const swaggerDocument = {
           origin_stop: { type: "string", example: "Airport" },
           destination_stop: { type: "string", example: "Farmgate" },
           distance: { type: "number", example: 15.3 },
-          fare: { type: "integer", example: 35 },
+          fare: { type: "integer", example: 43 },
+          rate_per_km: {
+            type: "number",
+            example: 2.7,
+            description: "BRTA per-kilometre rate applied to this result",
+          },
           is_transfer: { type: "boolean", example: false },
           may_use_elevated_expressway: { type: "boolean", example: false },
           transfer: {
@@ -593,8 +598,8 @@ const swaggerDocument = {
           },
           origin: { type: "string", example: "Airport" },
           destination: { type: "string", example: "Mohakhali" },
-          distance: { type: "number", example: 11.9 },
-          fare: { type: "integer", example: 27 },
+          distance: { type: "number", example: 13.2 },
+          fare: { type: "integer", example: 36 },
         },
       },
       Error: {

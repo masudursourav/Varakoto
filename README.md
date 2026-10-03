@@ -4,7 +4,7 @@ A bilingual (Bengali/English) BRTA fare calculator for Dhaka bus commuters. Sele
 
 ## Features
 
-- **Accurate Fares** — Uses BRTA-approved rates (&#2547;2.42/km) with Google Maps-verified distances
+- **Accurate Fares** — Uses BRTA-approved rates (৳2.70/km, September 2026 gazette) with Google Maps-verified, plausibility-checked distances
 - **Bilingual UI** — Full Bengali and English support with one-tap language switching
 - **Dark Mode** — Light and dark themes with design-token-driven color system
 - **Student Fare** — Toggle to see half-fare for students
@@ -176,12 +176,19 @@ Changing `--radius` or `--primary` in `:root` scales the entire UI proportionall
 
 1. User selects origin and destination stops (Bengali or English input)
 2. Stop alias system resolves spelling variants to canonical English names
-3. Distance consensus engine picks the best distance from:
+3. Distance priority engine picks the best distance (first plausible source wins):
    - Precomputed Google Maps direct driving distance (primary)
-   - Dijkstra shortest path through verified edges (fallback)
+   - Barikoi driving distance (real road routing fallback)
+   - Dijkstra shortest path through Google-verified edges (corrected by a calibrated factor)
    - Database minimum km difference (last resort)
-4. Fare = `max(min_fare, distance × 2.42)`, rounded to nearest taka
-5. Results sorted by fare, deduplicated by bus name
+4. Fare = `max(route minimum, ৳10 metro minimum, distance × ৳2.70)`, rounded to nearest taka
+5. Student fare = half of the regular fare with a floor of ৳5 (half the metro minimum)
+6. Results sorted by fare, deduplicated by bus + route
+
+All cached distances are validated against physical plausibility bounds
+(straight-line distance × allowed road factor) before use, and the
+calibration factor is recomputed from raw Dijkstra distances with
+`scripts/calibrate-factor.ts` whenever the gazette rate or caches change.
 
 ## Map Features
 

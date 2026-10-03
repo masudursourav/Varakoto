@@ -11,6 +11,7 @@ dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
 const { getConsensusDistance } = await import("../src/utils/distanceConsensus.js");
 const { connectDatabase } = await import("../src/config/database.js");
+const { calculateRideFare } = await import("../src/utils/fare.js");
 
 await connectDatabase();
 
@@ -63,7 +64,7 @@ for (const [a, b] of pairs) {
   const dist = await getConsensusDistance(a, b);
   const label = `${a} ↔ ${b}`;
   const gRef = googleRef[label];
-  const fare = dist ? Math.round(Math.max(10, dist * 2.42)) : "N/A";
+  const fare = dist ? calculateRideFare(dist, 10) : "N/A";
   const dev = dist && gRef ? `${((dist - gRef) / gRef * 100).toFixed(0)}%` : "N/A";
 
   console.log(

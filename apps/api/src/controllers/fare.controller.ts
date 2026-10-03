@@ -3,8 +3,12 @@ import { BusRoute, type Stop } from "../models/busRoute.model.js";
 import { resolveEnglishNames } from "../utils/stopAlias.js";
 import { getConsensusDistance } from "../utils/distanceConsensus.js";
 import { sanitizeInput, normalizeText } from "../utils/normalizeText.js";
-
-const RATE_PER_KM = 2.42;
+import {
+  calculateRideFare,
+  resolveRatePerKm,
+  roundDistance,
+  roundFare,
+} from "../utils/fare.js";
 
 /** Maximum number of transfer suggestions to return when no direct route exists. */
 const MAX_TRANSFER_RESULTS = 3;
@@ -77,6 +81,7 @@ interface FareResult {
   destination_stop: string;
   distance: number;
   fare: number;
+  rate_per_km: number;
   is_transfer: boolean;
   may_use_elevated_expressway: boolean;
   transfer?: {
@@ -88,14 +93,6 @@ interface FareResult {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function roundFare(fare: number): number {
-  return Math.round(fare);
-}
-
-function roundDistance(distance: number): number {
-  return Math.round(distance * 100) / 100;
-}
 
 function findAllStops(stops: Stop[], canonicalNames: string[]): Stop[] {
   return stops.filter((stop) =>
@@ -117,12 +114,14 @@ function escapeForRegex(text: string): string {
 
 /**
  * Get the best distance between two stops using the consensus engine.
+ * Falls back to the route's own cumulative kilometre marks when the
+ * consensus engine has no data for the pair.
  */
 async function getBestDistance(stop1: Stop, stop2: Stop): Promise<number> {
   const consensus = await getConsensusDistance(stop1.name_en, stop2.name_en);
-  const routeDistance = Math.abs(stop2.km - stop1.km);
+  if (consensus !== null) return consensus;
 
-  return consensus !== null ? consensus : routeDistance;
+  return Math.abs(stop2.km - stop1.km);
 }
 
 // ─── Controller ───────────────────────────────────────────────────────────────
@@ -161,6 +160,16 @@ export async function calculateFare(
       res.status(404).json({
         success: false,
         message: "Destination stop not found",
+      });
+      return;
+    }
+
+    // Reject same-stop queries at the API level (the UI also blocks them).
+    const originKeys = new Set(originNames.map(normalizeText));
+    if (destinationNames.every((name) => originKeys.has(normalizeText(name)))) {
+      res.status(400).json({
+        success: false,
+        message: "Origin and destination must be different stops",
       });
       return;
     }
@@ -204,9 +213,8 @@ export async function calculateFare(
         if (!bestOrigin || !bestDest) continue;
 
         const distance = roundDistance(minDistance);
-        const fare = roundFare(
-          Math.max(route.min_fare, distance * RATE_PER_KM),
-        );
+        const rate = resolveRatePerKm(route.rate_per_km);
+        const fare = calculateRideFare(distance, route.min_fare, rate);
 
         const buses =
           route.buses.length > 0 ? route.buses : [route.route_name_en];
@@ -227,6 +235,7 @@ export async function calculateFare(
             destination_stop: bestDest.name_en,
             distance,
             fare,
+            rate_per_km: rate,
             is_transfer: false,
             may_use_elevated_expressway: elevated,
           });
@@ -238,10 +247,9 @@ export async function calculateFare(
       // When no single route covers both stops we look for a transfer point —
       // a stop shared by a route from the origin and a route to the destination.
       //
-      // We collect ALL valid transfer options (those that pass the 1.5×
-      // reasonableness cap), deduplicate them by bus-pair key, sort by fare,
-      // and return the top MAX_TRANSFER_RESULTS options so the user can
-      // compare alternatives rather than seeing only the cheapest one.
+      // We collect ALL valid transfer options, deduplicate them by
+      // bus-pair + transfer-stop key, sort by fare, and return the top
+      // MAX_TRANSFER_RESULTS options so the user can compare alternatives.
 
       const [originRoutes, destRoutes] = await Promise.all([
         BusRoute.find({
@@ -252,8 +260,8 @@ export async function calculateFare(
         }).lean(),
       ]);
 
-      // Collect valid transfers in a map keyed by bus-pair to deduplicate;
-      // for each bus-pair we keep only the option with the lowest total fare.
+      // Collect valid transfers in a map keyed by the full option so distinct
+      // bus pairs *and* distinct transfer points both survive deduplication.
       const transferMap = new Map<
         string,
         { fare: number; distance: number; result: FareResult }
@@ -270,30 +278,31 @@ export async function calculateFare(
             normalizeText(s.name_en),
           );
 
-          const commonNames = route1StopNames.filter((name) =>
-            route2StopNames.includes(name),
+          const commonNames = Array.from(
+            new Set(
+              route1StopNames.filter((name) =>
+                route2StopNames.includes(name),
+              ),
+            ),
           );
 
           if (commonNames.length === 0) continue;
 
-          const bus1 =
-            route1.buses.length > 0 ? route1.buses[0] : route1.route_name_en;
-          const bus2 =
-            route2.buses.length > 0 ? route2.buses[0] : route2.route_name_en;
+          const bus1s =
+            route1.buses.length > 0 ? route1.buses : [route1.route_name_en];
+          const bus2s =
+            route2.buses.length > 0 ? route2.buses : [route2.route_name_en];
 
-          // Deduplicate by bus-pair: if the same two buses are already
-          // represented, we only keep the cheapest option for that pair.
-          const busPairKey = `${bus1}|||${bus2}`;
+          const originStops = findAllStops(route1.stops, originNames);
+          const destStops = findAllStops(route2.stops, destinationNames);
 
           for (const transferName of commonNames) {
-            const originStops = findAllStops(route1.stops, originNames);
             const transferStopsR1 = route1.stops.filter(
               (s) => normalizeText(s.name_en) === transferName,
             );
             const transferStopsR2 = route2.stops.filter(
               (s) => normalizeText(s.name_en) === transferName,
             );
-            const destStops = findAllStops(route2.stops, destinationNames);
 
             for (const os of originStops) {
               for (const ts1 of transferStopsR1) {
@@ -304,74 +313,96 @@ export async function calculateFare(
                       getBestDistance(ts2, ds).then(roundDistance),
                     ]);
 
-                    const leg1Fare = roundFare(
-                      Math.max(route1.min_fare, leg1Dist * RATE_PER_KM),
-                    );
-                    const leg2Fare = roundFare(
-                      Math.max(route2.min_fare, leg2Dist * RATE_PER_KM),
-                    );
+                    const rate1 = resolveRatePerKm(route1.rate_per_km);
+                    const rate2 = resolveRatePerKm(route2.rate_per_km);
 
+                    // Fares per leg (each bus charges separately), then round
+                    // the summed total exactly once.
+                    const leg1Fare = calculateRideFare(
+                      leg1Dist,
+                      route1.min_fare,
+                      rate1,
+                    );
+                    const leg2Fare = calculateRideFare(
+                      leg2Dist,
+                      route2.min_fare,
+                      rate2,
+                    );
                     const totalFare = leg1Fare + leg2Fare;
                     const totalDistance = roundDistance(leg1Dist + leg2Dist);
 
-                    // Reasonableness cap: skip if transfer costs more than
-                    // 1.5× what a hypothetical direct trip would cost.
+                    // Reasonableness cap: skip if the transfer costs more than
+                    // 1.5× what a hypothetical direct trip would cost. The
+                    // hypothetical trip crosses both routes, so a traveller
+                    // would be charged the higher of the two minimums.
                     const hypotheticalDirect = roundFare(
                       Math.max(
-                        Math.max(route1.min_fare, route2.min_fare),
-                        totalDistance * RATE_PER_KM,
+                        Math.max(
+                          route1.min_fare ?? 0,
+                          route2.min_fare ?? 0,
+                        ),
+                        totalDistance * Math.max(rate1, rate2),
                       ),
                     );
 
                     if (totalFare > hypotheticalDirect * 1.5) continue;
 
-                    const candidate: FareResult = {
-                      bus: `${bus1} → ${bus2}`,
-                      route_name_en: `${route1.route_name_en} → ${route2.route_name_en}`,
-                      route_name_bn: `${route1.route_name_bn} → ${route2.route_name_bn}`,
-                      origin_stop: os.name_en,
-                      destination_stop: ds.name_en,
-                      distance: totalDistance,
-                      fare: totalFare,
-                      is_transfer: true,
-                      may_use_elevated_expressway: false,
-                      transfer: {
-                        transfer_stop_en: ts1.name_en,
-                        transfer_stop_bn: ts1.name_bn,
-                        leg1: {
-                          bus: bus1,
-                          route_name_en: route1.route_name_en,
-                          route_name_bn: route1.route_name_bn,
-                          origin: os.name_en,
-                          destination: ts1.name_en,
-                          distance: leg1Dist,
-                          fare: leg1Fare,
-                        },
-                        leg2: {
-                          bus: bus2,
-                          route_name_en: route2.route_name_en,
-                          route_name_bn: route2.route_name_bn,
-                          origin: ts2.name_en,
-                          destination: ds.name_en,
-                          distance: leg2Dist,
-                          fare: leg2Fare,
-                        },
-                      },
-                    };
+                    const busPairKey = `${bus1s.join("/")}|||${bus2s.join("/")}`;
 
-                    // Keep only the cheapest option per bus-pair
-                    const existing = transferMap.get(busPairKey);
-                    if (
-                      !existing ||
-                      totalFare < existing.fare ||
-                      (totalFare === existing.fare &&
-                        totalDistance < existing.distance)
-                    ) {
-                      transferMap.set(busPairKey, {
-                        fare: totalFare,
-                        distance: totalDistance,
-                        result: candidate,
-                      });
+                    for (const bus1 of bus1s) {
+                      for (const bus2 of bus2s) {
+                        const candidate: FareResult = {
+                          bus: `${bus1} → ${bus2}`,
+                          route_name_en: `${route1.route_name_en} → ${route2.route_name_en}`,
+                          route_name_bn: `${route1.route_name_bn} → ${route2.route_name_bn}`,
+                          origin_stop: os.name_en,
+                          destination_stop: ds.name_en,
+                          distance: totalDistance,
+                          fare: totalFare,
+                          rate_per_km: Math.max(rate1, rate2),
+                          is_transfer: true,
+                          may_use_elevated_expressway: false,
+                          transfer: {
+                            transfer_stop_en: ts1.name_en,
+                            transfer_stop_bn: ts1.name_bn,
+                            leg1: {
+                              bus: bus1,
+                              route_name_en: route1.route_name_en,
+                              route_name_bn: route1.route_name_bn,
+                              origin: os.name_en,
+                              destination: ts1.name_en,
+                              distance: leg1Dist,
+                              fare: leg1Fare,
+                            },
+                            leg2: {
+                              bus: bus2,
+                              route_name_en: route2.route_name_en,
+                              route_name_bn: route2.route_name_bn,
+                              origin: ts2.name_en,
+                              destination: ds.name_en,
+                              distance: leg2Dist,
+                              fare: leg2Fare,
+                            },
+                          },
+                        };
+
+                        // Keep only the cheapest option per bus-pair and
+                        // transfer point.
+                        const optionKey = `${busPairKey}|||${transferName}`;
+                        const existing = transferMap.get(optionKey);
+                        if (
+                          !existing ||
+                          totalFare < existing.fare ||
+                          (totalFare === existing.fare &&
+                            totalDistance < existing.distance)
+                        ) {
+                          transferMap.set(optionKey, {
+                            fare: totalFare,
+                            distance: totalDistance,
+                            result: candidate,
+                          });
+                        }
+                      }
                     }
                   }
                 }
@@ -394,15 +425,19 @@ export async function calculateFare(
       results.push(...sortedTransfers);
     }
 
-    // ── Deduplicate & sort direct results ─────────────────────────────────────
-    // For direct routes only: group by bus name, keep shortest distance per bus.
-    // Transfer results are already deduplicated by bus-pair above.
+    // ── Deduplicate & sort results ────────────────────────────────────────────
+    // Group by bus + route so distinct routes operated by the same company
+    // survive as separate options; keep the shortest distance per group.
 
     const deduped = new Map<string, FareResult>();
     for (const result of results) {
-      const key = result.bus;
+      const key = `${result.bus}|||${result.route_name_en}`;
       const existing = deduped.get(key);
-      if (!existing || result.distance < existing.distance) {
+      if (
+        !existing ||
+        result.distance < existing.distance ||
+        (result.distance === existing.distance && result.fare < existing.fare)
+      ) {
         deduped.set(key, result);
       }
     }

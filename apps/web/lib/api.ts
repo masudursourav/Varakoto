@@ -24,6 +24,7 @@ export interface FareResult {
   destination_stop: string;
   distance: number;
   fare: number;
+  rate_per_km: number;
   is_transfer: boolean;
   may_use_elevated_expressway: boolean;
   transfer?: {

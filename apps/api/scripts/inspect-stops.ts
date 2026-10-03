@@ -8,6 +8,10 @@ const __dirname = path.dirname(__filename);
 
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
+const { BRTA_RATE_PER_KM, calculateRideFare } = await import(
+  "../src/utils/fare.js"
+);
+
 const stopSchema = new mongoose.Schema(
   { name_en: String, name_bn: String, km: Number },
   { _id: false }
@@ -70,9 +74,9 @@ async function main() {
         for (const a of airportStops) {
           for (const s of sainikStops) {
             const dist = Math.abs((s as any).km - (a as any).km);
-            const fare = Math.max(route.min_fare!, dist * 2.42);
+            const fare = calculateRideFare(dist, route.min_fare);
             console.log(
-              `  >> Distance Airport→Sainik: ${dist.toFixed(2)} km, Fare: ৳${Math.round(fare)}`
+              `  >> Distance Airport→Sainik: ${dist.toFixed(2)} km, Fare: ৳${fare}`
             );
           }
         }

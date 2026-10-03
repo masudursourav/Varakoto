@@ -34,11 +34,20 @@ function DetailsModal({
   const { lang } = useLanguage();
   const dialogRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  // Students pay half on each bus. With the floor at half the metro
+  // minimum (৳5), leg sum = journey floor, and the badge total always
+  // equals the sum of the leg amounts shown below.
   const studentFare =
     result.is_transfer && result.transfer
       ? calcStudentFare(result.transfer.leg1.fare) +
         calcStudentFare(result.transfer.leg2.fare)
       : calcStudentFare(result.fare);
+  const leg1StudentFare = result.transfer
+    ? calcStudentFare(result.transfer.leg1.fare)
+    : 0;
+  const leg2StudentFare = result.transfer
+    ? calcStudentFare(result.transfer.leg2.fare)
+    : 0;
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -206,7 +215,7 @@ function DetailsModal({
                   <span>
                     {result.transfer.leg1.distance} {t(lang, "km")} · ৳
                     {showStudentFare
-                      ? calcStudentFare(result.transfer.leg1.fare)
+                      ? leg1StudentFare
                       : result.transfer.leg1.fare}
                   </span>
                 </div>
@@ -217,7 +226,7 @@ function DetailsModal({
                   <span>
                     {result.transfer.leg2.distance} {t(lang, "km")} · ৳
                     {showStudentFare
-                      ? calcStudentFare(result.transfer.leg2.fare)
+                      ? leg2StudentFare
                       : result.transfer.leg2.fare}
                   </span>
                 </div>
@@ -249,11 +258,19 @@ export function FareResultCard({
   const { lang } = useLanguage();
   const [showDetails, setShowDetails] = useState(false);
 
+  // Students pay half on each bus; the badge total equals the sum of the
+  // two leg amounts shown in the transfer breakdown.
   const studentFare =
     result.is_transfer && result.transfer
       ? calcStudentFare(result.transfer.leg1.fare) +
         calcStudentFare(result.transfer.leg2.fare)
       : calcStudentFare(result.fare);
+  const leg1StudentFare = result.transfer
+    ? calcStudentFare(result.transfer.leg1.fare)
+    : 0;
+  const leg2StudentFare = result.transfer
+    ? calcStudentFare(result.transfer.leg2.fare)
+    : 0;
 
   const displayFare = showStudentFare ? studentFare : result.fare;
   const routeName = lang === "bn" ? result.route_name_bn : result.route_name_en;
@@ -314,13 +331,17 @@ export function FareResultCard({
                 ৳ {displayFare}
               </span>
               <div className="rounded bg-blue-600 px-2 py-0.5 text-[10px] font-bold uppercase text-white">
-                {t(lang, "brtaApproved")}
+                {showStudentFare
+                  ? t(lang, "studentFare")
+                  : t(lang, "brtaApproved")}
               </div>
             </div>
             {showStudentFare && (
               <div className="mt-1 flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400">
                 <GraduationCap className="h-3 w-3" />
-                <span>{t(lang, "studentFare")}</span>
+                <span>
+                  {t(lang, "fareLabel")}: ৳{result.fare}
+                </span>
               </div>
             )}
           </div>
@@ -346,7 +367,7 @@ export function FareResultCard({
                   <span className="ml-auto shrink-0 text-gray-400 dark:text-slate-500">
                     {result.transfer.leg1.distance} {t(lang, "km")} · ৳
                     {showStudentFare
-                      ? calcStudentFare(result.transfer.leg1.fare)
+                      ? leg1StudentFare
                       : result.transfer.leg1.fare}
                   </span>
                 </div>
@@ -361,7 +382,7 @@ export function FareResultCard({
                   <span className="ml-auto shrink-0 text-gray-400 dark:text-slate-500">
                     {result.transfer.leg2.distance} {t(lang, "km")} · ৳
                     {showStudentFare
-                      ? calcStudentFare(result.transfer.leg2.fare)
+                      ? leg2StudentFare
                       : result.transfer.leg2.fare}
                   </span>
                 </div>

@@ -111,6 +111,11 @@ function fuzzyLookup(query: string, map: Map<string, Set<string>>): string[] {
   const compactQuery = compact(query);
   const queryTokens = normalizedQuery.split(/\s+/).filter(Boolean);
 
+  // Very short queries ("air", "a") match almost every stop via substring
+  // tests, silently resolving to the wrong stop. Require a minimum length
+  // before any fuzzy strategy other than exact compact equality runs.
+  const MIN_FUZZY_LENGTH = 4;
+
   const found = new Set<string>();
 
   for (const [key, canonicals] of map) {
@@ -121,6 +126,8 @@ function fuzzyLookup(query: string, map: Map<string, Set<string>>): string[] {
       canonicals.forEach((c) => found.add(c));
       continue;
     }
+
+    if (compactQuery.length < MIN_FUZZY_LENGTH) continue;
 
     // Strategy 2: compact prefix or substring
     if (
@@ -133,10 +140,11 @@ function fuzzyLookup(query: string, map: Map<string, Set<string>>): string[] {
       continue;
     }
 
-    // Strategy 3: all query tokens appear inside the key
+    // Strategy 3: all query tokens appear inside the key (tokens must
+    // each be meaningful — this stops "10" matching every "… 10" stop).
     if (
       queryTokens.length > 0 &&
-      queryTokens.every((token) => key.includes(token))
+      queryTokens.every((token) => token.length >= 3 && key.includes(token))
     ) {
       canonicals.forEach((c) => found.add(c));
       continue;
