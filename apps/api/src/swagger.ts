@@ -576,6 +576,12 @@ const swaggerDocument = {
             $ref: "#/components/schemas/TransferInfo",
             nullable: true,
           },
+          alignment: {
+            type: "string",
+            enum: ["route", "point-to-point"],
+            description:
+              "How the distance was measured: along the bus's own stop sequence or straight between the two stops",
+          },
         },
       },
       TransferInfo: {

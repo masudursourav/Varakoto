@@ -9,7 +9,9 @@ A bilingual (Bengali/English) BRTA fare calculator for Dhaka bus commuters. Sele
 - **Dark Mode** — Light and dark themes with design-token-driven color system
 - **Student Fare** — Toggle to see half-fare for students
 - **Search History** — Recent searches saved locally with confirmation before clearing
-- **Multi-bus Transfers** — Suggests transfer routes when no direct route exists
+- **Multiple Route Options** — Direct buses and segmented-journey alternatives (e.g. Ansar Camp → Mirpur 14 → Banani) are returned together, so users can compare fares and transfer points
+- **Route-Aligned Fares** — Distance is measured along the bus's own stop sequence (sum of verified consecutive hops), so detours like the ECB corridor are priced correctly; point-to-point distance is only a fallback
+- **Multi-bus Transfers** — Suggests transfer routes even when a direct bus exists
 - **Offline Support** — PWA with service worker, versioned cache busting, and skeleton loading screens
 - **Accessible** — Screen-reader-friendly navigation separators, semantic markup
 - **Nearest Stop with Route** — GPS-based origin detection with walking route visualization to the nearest bus stop (inline + fullscreen map)
@@ -176,11 +178,10 @@ Changing `--radius` or `--primary` in `:root` scales the entire UI proportionall
 
 1. User selects origin and destination stops (Bengali or English input)
 2. Stop alias system resolves spelling variants to canonical English names
-3. Distance priority engine picks the best distance (first plausible source wins):
-   - Precomputed Google Maps direct driving distance (primary)
-   - Barikoi driving distance (real road routing fallback)
-   - Dijkstra shortest path through Google-verified edges (corrected by a calibrated factor)
-   - Database minimum km difference (last resort)
+3. Distance engine:
+   - Direct routes: sum of verified consecutive hop distances along the bus's own stop sequence (what the bus actually drives)
+   - Segmented journeys: same alignment per leg; point-to-point is only a fallback when hop data is missing
+   - Fallback sources: Google direct → Barikoi → Dijkstra (corrected) → DB kilometres
 4. Fare = `max(route minimum, ৳10 metro minimum, distance × ৳2.70)`, rounded to nearest taka
 5. Student fare = half of the regular fare, but never below the ৳10 metro minimum fare that applies to all passengers
 6. Results sorted by fare, deduplicated by bus + route

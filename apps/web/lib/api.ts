@@ -27,6 +27,7 @@ export interface FareResult {
   rate_per_km: number;
   is_transfer: boolean;
   may_use_elevated_expressway: boolean;
+  alignment: "route" | "point-to-point";
   transfer?: {
     transfer_stop_en: string;
     transfer_stop_bn: string;

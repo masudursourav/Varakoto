@@ -210,7 +210,8 @@ function DetailsModal({
               <div className="space-y-2 text-xs text-gray-600 dark:text-slate-400">
                 <div className="flex justify-between">
                   <span>
-                    {t(lang, "firstBus")}: {result.transfer.leg1.bus}
+                    {t(lang, "journey1")}: {result.transfer.leg1.origin} →{" "}
+                    {result.transfer.leg1.destination}
                   </span>
                   <span>
                     {result.transfer.leg1.distance} {t(lang, "km")} · ৳
@@ -219,9 +220,13 @@ function DetailsModal({
                       : result.transfer.leg1.fare}
                   </span>
                 </div>
+                <div className="text-amber-700 dark:text-amber-400">
+                  {result.transfer.leg1.bus}
+                </div>
                 <div className="flex justify-between">
                   <span>
-                    {t(lang, "secondBus")}: {result.transfer.leg2.bus}
+                    {t(lang, "journey2")}: {result.transfer.leg2.origin} →{" "}
+                    {result.transfer.leg2.destination}
                   </span>
                   <span>
                     {result.transfer.leg2.distance} {t(lang, "km")} · ৳
@@ -229,6 +234,9 @@ function DetailsModal({
                       ? leg2StudentFare
                       : result.transfer.leg2.fare}
                   </span>
+                </div>
+                <div className="text-amber-700 dark:text-amber-400">
+                  {result.transfer.leg2.bus}
                 </div>
               </div>
             </div>
@@ -361,9 +369,11 @@ export function FareResultCard({
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-slate-400">
                   <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
-                    {t(lang, "firstBus")}
+                    {t(lang, "journey1")}
                   </span>
-                  <span className="truncate">{result.transfer.leg1.bus}</span>
+                  <span className="truncate">
+                    {result.transfer.leg1.origin} → {result.transfer.leg1.destination}
+                  </span>
                   <span className="ml-auto shrink-0 text-gray-400 dark:text-slate-500">
                     {result.transfer.leg1.distance} {t(lang, "km")} · ৳
                     {showStudentFare
@@ -371,19 +381,31 @@ export function FareResultCard({
                       : result.transfer.leg1.fare}
                   </span>
                 </div>
+                <div className="flex items-center gap-2 pl-1 text-xs text-gray-600 dark:text-slate-400">
+                  <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+                    {result.transfer.leg1.bus}
+                  </span>
+                </div>
                 <div className="flex justify-center">
-                  <ArrowRight className="h-3 w-3 text-gray-300 dark:text-slate-600" />
+                  <ArrowRight className="h-3 w-3 rotate-90 text-gray-300 dark:text-slate-600" />
                 </div>
                 <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-slate-400">
                   <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
-                    {t(lang, "secondBus")}
+                    {t(lang, "journey2")}
                   </span>
-                  <span className="truncate">{result.transfer.leg2.bus}</span>
+                  <span className="truncate">
+                    {result.transfer.leg2.origin} → {result.transfer.leg2.destination}
+                  </span>
                   <span className="ml-auto shrink-0 text-gray-400 dark:text-slate-500">
                     {result.transfer.leg2.distance} {t(lang, "km")} · ৳
                     {showStudentFare
                       ? leg2StudentFare
                       : result.transfer.leg2.fare}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 pl-1 text-xs text-gray-600 dark:text-slate-400">
+                  <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+                    {result.transfer.leg2.bus}
                   </span>
                 </div>
               </div>
