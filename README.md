@@ -182,7 +182,7 @@ Changing `--radius` or `--primary` in `:root` scales the entire UI proportionall
    - Dijkstra shortest path through Google-verified edges (corrected by a calibrated factor)
    - Database minimum km difference (last resort)
 4. Fare = `max(route minimum, ৳10 metro minimum, distance × ৳2.70)`, rounded to nearest taka
-5. Student fare = half of the regular fare with a floor of ৳5 (half the metro minimum)
+5. Student fare = half of the regular fare, but never below the ৳10 metro minimum fare that applies to all passengers
 6. Results sorted by fare, deduplicated by bus + route
 
 All cached distances are validated against physical plausibility bounds

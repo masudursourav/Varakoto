@@ -34,9 +34,9 @@ function DetailsModal({
   const { lang } = useLanguage();
   const dialogRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
-  // Students pay half on each bus. With the floor at half the metro
-  // minimum (৳5), leg sum = journey floor, and the badge total always
-  // equals the sum of the leg amounts shown below.
+  // Students pay half on each bus, never below the ৳10 minimum fare that
+  // applies to every passenger; the badge total equals the sum of the two
+  // leg amounts shown in the transfer breakdown.
   const studentFare =
     result.is_transfer && result.transfer
       ? calcStudentFare(result.transfer.leg1.fare) +
@@ -258,8 +258,8 @@ export function FareResultCard({
   const { lang } = useLanguage();
   const [showDetails, setShowDetails] = useState(false);
 
-  // Students pay half on each bus; the badge total equals the sum of the
-  // two leg amounts shown in the transfer breakdown.
+  // Students pay half on each bus, never below the ৳10 minimum fare that
+  // applies to every passenger.
   const studentFare =
     result.is_transfer && result.transfer
       ? calcStudentFare(result.transfer.leg1.fare) +
