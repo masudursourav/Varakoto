@@ -69,6 +69,12 @@ export const STOP_COORDS: Record<string, [number, number]> = {
   "chairman bari": [23.7876, 90.4038],
   nabisco: [23.7714, 90.4074],
   "sainik club": [23.7961, 90.4045],
+  "ansar camp": [23.7909, 90.3539],
+  "mirpur 14": [23.7987, 90.3869],
+  "mirpur-14": [23.7987, 90.3869],
+  shyamoli: [23.7744, 90.3654],
+  kazipara: [23.8069, 90.3663],
+  tolarbag: [23.7924, 90.3563],
 };
 
 /**

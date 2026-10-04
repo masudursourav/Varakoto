@@ -70,6 +70,12 @@ export async function alignedDistance(
 /**
  * Best distance for a route segment: the route-aligned sum when it can
  * be reconstructed from verified hop data, otherwise point-to-point.
+ *
+ * Sanity cap: if the aligned sum is wildly larger than the point-to-point
+ * distance (more than 2.5× + 3 km), a corrupt hop has slipped into the
+ * sum — fall back to point-to-point rather than showing a misleading
+ * fare (e.g. the 45.69 km / Tk123 Ansar Camp → Banani result caused by
+ * corrupt cached hops).
  */
 export async function routeSegmentDistance(
   stops: Stop[],
@@ -79,10 +85,19 @@ export async function routeSegmentDistance(
   pointToPoint: () => Promise<number>,
 ): Promise<{ distance: number; alignment: "route" | "point-to-point" }> {
   const aligned = await alignedDistance(stops, fromIdx, toIdx, measure);
+  const fallback = await pointToPoint();
 
   if (aligned !== null && aligned > 0) {
+    if (Number.isFinite(fallback) && fallback > 0) {
+      const cap = fallback * 2.5 + 3;
+      if (aligned <= cap) {
+        return { distance: aligned, alignment: "route" };
+      }
+      // Aligned sum implausibly exceeds the direct measurement.
+      return { distance: fallback, alignment: "point-to-point" };
+    }
     return { distance: aligned, alignment: "route" };
   }
 
-  return { distance: await pointToPoint(), alignment: "point-to-point" };
+  return { distance: fallback, alignment: "point-to-point" };
 }

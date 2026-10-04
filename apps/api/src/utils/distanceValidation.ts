@@ -26,8 +26,9 @@ function compact(text: string): string {
  * - Absolute bounds always apply.
  * - When both stops have known coordinates, the value must be at least
  *   90% of the straight-line distance (roads are never shorter than the
- *   great-circle distance) and no more than 4× it plus 5 km (generous
- *   allowance for river crossings and ring-road detours).
+ *   great-circle distance) and no more than 3.5× it plus 1 km. Across
+ *   900+ verified pairs the real maximum ratio is ~3.3, so this bound
+ *   catches corrupt entries without rejecting genuine detours.
  * - A distance between two name variants of the same physical stop must
  *   be ~0.
  */
@@ -56,5 +57,5 @@ export function isPlausibleDistance(
     coords2[1],
   );
 
-  return km >= straightLine * 0.9 && km <= straightLine * 4 + 5;
+  return km >= straightLine * 0.9 && km <= straightLine * 3.5 + 1;
 }
